@@ -18,13 +18,8 @@ class Leveling(commands.Cog, discordSuperUtils.CogManager.Cog):
         # managers in different files, I recommend saving the managers as attributes on the bot object, instead of
         # importing them.
 
-    @commands.Cog.listener("on_ready")
-    async def leveling_ready(self):
-        database = discordSuperUtils.DatabaseManager.connect(database=await aiosqlite.connect("db/db.sqlite"))
-        print(database)
-        await self.LevelingManager.connect_to_database(
-            database, ["xp", "roles", "role_list"]
-        )
+
+
 
 
     @discordSuperUtils.CogManager.event(discordSuperUtils.LevelingManager)
@@ -36,6 +31,10 @@ class Leveling(commands.Cog, discordSuperUtils.CogManager.Cog):
 
     @commands.command()
     async def rank(self, ctx, member: discord.Member = None):
+        database = discordSuperUtils.DatabaseManager.connect(database=await aiosqlite.connect("db/db.sqlite"))
+        await self.LevelingManager.connect_to_database(
+            database, ["xp", "roles", "role_list"]
+        )
         mem_obj = member if member else ctx.author
         member_data = await self.LevelingManager.get_account(mem_obj)
 
@@ -52,18 +51,18 @@ class Leveling(commands.Cog, discordSuperUtils.CogManager.Cog):
         image = await self.ImageManager.create_leveling_profile(
             member=mem_obj,
             member_account=member_data,
-            background=discordSuperUtils.Backgrounds.GALAXY,
-            # name_color=(255, 255, 255),
-            # rank_color=(127, 255, 0),
-            # level_color=(255, 255, 255),
-            # xp_color=(255, 255, 255),
-            # bar_outline_color=(255, 255, 255),
-            # bar_fill_color=(127, 255, 0),
-            # bar_blank_color=(72, 75, 78),
-            # profile_outline_color=(100, 100, 100),
+            background="https://media.discordapp.net/attachments/889514827905630290/896007967915261982/ada.png",
+            name_color=(255, 255, 255),
+            rank_color=(217, 217, 217),
+            level_color=(255, 255, 255),
+            xp_color=(255, 255, 255),
+            bar_outline_color=(255, 255, 255),
+            bar_fill_color=(127, 255, 0),
+            bar_blank_color=(72, 75, 78),
+            profile_outline_color=(100, 100, 100),
             rank=member_rank,
             font_path=None,
-            outline=5,
+            outline=3,
         )
 
         await ctx.send(file=image)
