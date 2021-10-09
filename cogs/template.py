@@ -113,7 +113,7 @@ class invitetracker(commands.Cog):
                 "categories",
                 "text_channels",
                 "voice_channels",
-                "roles",
+                "template_roles",
                 "overwrites",
             ],
         )
