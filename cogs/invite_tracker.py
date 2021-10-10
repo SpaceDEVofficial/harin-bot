@@ -13,12 +13,42 @@ class invitetracker(commands.Cog):
         self.ImageManager = discordSuperUtils.ImageManager()
         self.InviteTracker = discordSuperUtils.InviteTracker(self.bot)
 
+    async def cog_before_invoke(self, ctx: commands.Context):
+        print(ctx.command)
+        if ctx.command.name != '메일':
+            database = await aiosqlite.connect("db/db.sqlite")
+            cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
+            if await cur.fetchone() == None:
+                cur = await database.execute(f"SELECT * FROM mail")
+                mails = await cur.fetchall()
+                check = 0
+                for j in mails:
+                    check += 1
+                mal = discord.Embed(title=f"📫하린봇 메일함 | {str(check)}개 수신됨",
+                                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                                    colour=ctx.author.colour)
+                return await ctx.send(embed=mal)
+            cur = await database.execute(f"SELECT * FROM mail")
+            mails = await cur.fetchall()
+            check = 0
+            for j in mails:
+                check += 1
+            cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
+            CHECK = await cur.fetchone()
+            if str(check) == str(CHECK[1]):
+                pass
+            else:
+                mal = discord.Embed(title=f"📫하린봇 메일함 | {str(int(check) - int(CHECK[1]))}개 수신됨",
+                                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                                    colour=ctx.author.colour)
+                await ctx.send(embed=mal)
+
     @commands.Cog.listener("on_member_join")
     async def invite_tracker(self,member):
-        database = await aiosqlite.connect("db/db.sqlite")
-        database = discordSuperUtils.DatabaseManager.connect(database)
+        database_one = await aiosqlite.connect("db/db.sqlite")
+        database = discordSuperUtils.DatabaseManager.connect(database_one)
         await self.InviteTracker.connect_to_database(database, ["invites"])
-        cur = await database.execute("SELECT * FROM invite_tracker WHERE guild = ?",(member.guild.id,))
+        cur = await database_one.execute("SELECT * FROM invite_tracker WHERE guild = ?",(member.guild.id,))
         data = await cur.fetchone()
         if data != None:
             invite = await self.InviteTracker.get_invite(member)
@@ -32,7 +62,7 @@ class invitetracker(commands.Cog):
                 )
                 return
             await channel.send(
-                f"{member.mention}님은 {inviter.mention}님의 초대로 접속하셨어요. 코드 - {invite.code}"
+                f"{member.mention}님은 {inviter}님의 초대로 접속하셨어요. 코드 - {invite.code}"
             )
 
     @commands.command(name="초대정보")

@@ -20,12 +20,44 @@ class general(commands.Cog):
             "-HNoLv":"레벨링 무시",
             "wlc":"환영인사",
             "ivt":"초대추적",
+            "-HOnNt":"공지수신",
+            "-HOnBtd":"생일알림"
             #"-HNoAts":"안티스팸 무시"
         }
         self.option_dict_db = {
             "wlc": "welcome",
             "ivt": "invite_tracker"
         }
+
+    async def cog_before_invoke(self, ctx: commands.Context):
+        print(ctx.command)
+        if ctx.command.name != '메일':
+            database = await aiosqlite.connect("db/db.sqlite")
+            cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
+            if await cur.fetchone() == None:
+                cur = await database.execute(f"SELECT * FROM mail")
+                mails = await cur.fetchall()
+                check = 0
+                for j in mails:
+                    check += 1
+                mal = discord.Embed(title=f"📫하린봇 메일함 | {str(check)}개 수신됨",
+                                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                                    colour=ctx.author.colour)
+                return await ctx.send(embed=mal)
+            cur = await database.execute(f"SELECT * FROM mail")
+            mails = await cur.fetchall()
+            check = 0
+            for j in mails:
+                check += 1
+            cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
+            CHECK = await cur.fetchone()
+            if str(check) == str(CHECK[1]):
+                pass
+            else:
+                mal = discord.Embed(title=f"📫하린봇 메일함 | {str(int(check) - int(CHECK[1]))}개 수신됨",
+                                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                                    colour=ctx.author.colour)
+                await ctx.send(embed=mal)
 
     async def check_option(self,ctx,db):
         on_option = []
@@ -35,11 +67,21 @@ class general(commands.Cog):
             on_option.append(self.option_dict["-HNoAts"]+" <:activ:896255701641474068>")"""
         if "-HNoLv" in topics:
             on_option.append(self.option_dict["-HNoLv"] + " <:activ:896255701641474068>")
-        cur = await db.execute("SELECT * FROM welcome WHERE guild = ?", (ctx.guild.id,))
+        channels = ctx.guild.text_channels
+        for channel in channels:
+            if channel.topic is not None:
+                if str(channel.topic).find("-HOnNt") != -1:
+                    on_option.append(self.option_dict["-HOnNt"] + f"<#{channel.id}> <:activ:896255701641474068>")
+                    break
+                if str(channel.topic).find("-HOnBtd") != -1:
+                    on_option.append(self.option_dict["-HOnBtd"] + f"<#{channel.id}> <:activ:896255701641474068>")
+                    break
+        database = await aiosqlite.connect("db/db.sqlite")
+        cur = await database.execute("SELECT * FROM welcome WHERE guild = ?", (ctx.guild.id,))
         data = await cur.fetchone()
         if data != None:
             on_option.append(self.option_dict["wlc"] + " <:activ:896255701641474068>")
-        cur = await db.execute("SELECT * FROM invite_tracker WHERE guild = ?", (ctx.guild.id,))
+        cur = await database.execute("SELECT * FROM invite_tracker WHERE guild = ?", (ctx.guild.id,))
         data = await cur.fetchone()
         if data != None:
             on_option.append(self.option_dict["ivt"] + " <:activ:896255701641474068>")
@@ -49,14 +91,14 @@ class general(commands.Cog):
 
     @commands.command(name="옵션",aliases=["설정"])
     async def option(self,ctx):
-        database = await aiosqlite.connect("db/db.sqlite")
+        database = self.bot.db
         check_option = await self.check_option(ctx=ctx,db=database)
         """
         SelectOption(label="안티스팸 무시",
                                                             description="이 채널에 메세지 도배나 멘션 도배를 무시하는 모드입니다.",
                                                             value="-HNoAts", emoji="👮‍♂️")
         """
-        msg = await ctx.reply("옵션을 확인거나 셋팅하세요\n\n< 적용된 옵션 >\n"+ check_option,
+        msg = await ctx.reply("옵션을 확인하거나 셋팅하세요\n\n< 적용된 옵션 >\n"+ check_option,
                         components=[
                                     Select(placeholder="옵션",
                                            options=[
@@ -67,6 +109,12 @@ class general(commands.Cog):
                                                SelectOption(label="초대추적",
                                                             description="유저가 서버에 입장시 누구의 초대로 서버에 들어왔는지 확인할 수 있는 모드입니다.",
                                                             value="ivt", emoji="📈"),
+                                               SelectOption(label="봇공지채널",
+                                                            description="이 채널을 봇 공지를 받을수있는 채널로 설정해요.",
+                                                            value="-HOnNt", emoji="📢"),
+                                               SelectOption(label="생일알림채널",
+                                                            description="이 채널을 생일알림 채널로 설정해요.",
+                                                            value="-HOnBtd", emoji="🎉"),
                                                SelectOption(label="리셋",
                                                             description="적용되어있는 옵션을 리셋합니다.",
                                                             value="reset", emoji="🔄"),
@@ -87,6 +135,7 @@ class general(commands.Cog):
             await msg.edit("시간이 초과되었어요!",components=[])
             return
         if value == "wlc" or value == "ivt":
+            database = await aiosqlite.connect("db/db.sqlite")
             if value == "wlc":
                 cur = await database.execute("SELECT * FROM welcome WHERE guild = ?", (ctx.guild.id,))
                 data = await cur.fetchone()
@@ -122,7 +171,7 @@ class general(commands.Cog):
         if value == "reset":
             if not ctx.channel.topic == None:
                 topics = str(ctx.channel.topic).split(" ")
-                values = ["-HNoAts", "-HNoLv"]
+                values = ["-HNoLv","-HOnNt"]
                 for x in values:
                     try:
                         topics.remove(x)
@@ -130,9 +179,12 @@ class general(commands.Cog):
                         pass
                 # print(' '.join(topics))
                 res_topic = ' '.join(topics)
-                print(res_topic)
-                channel = ctx.channel
-                await channel.edit(topic=str(res_topic))
+                if res_topic == '':
+                    channel = ctx.channel
+                    await channel.edit(topic="")
+                else:
+                    channel = ctx.channel
+                    await channel.edit(topic=str(res_topic))
             else:
                 pass
             try:
@@ -153,6 +205,8 @@ class general(commands.Cog):
         if value == "-HNoLv" or value == "-HNoAts":
             try:
                 print(value)
+                if str(ctx.channel.topic).find(value) != -1:
+                    return await msg.edit("이미 설정되어있어요.",components =[])
                 if ctx.channel.topic == None:
                     topic = value
                 else:
@@ -161,6 +215,42 @@ class general(commands.Cog):
                 await msg.edit("성공적으로 적용되었어요.",components =[])
             except discord.Forbidden:
                 await msg.edit(content=f"채널 관리 권한이 없어 변경할 수 없어요! 권한을 재설정해주세요!",components =[])
+        if value == "-HOnNt":
+            channels = ctx.guild.text_channels
+            count = []
+            for channel in channels:
+                if channel.topic is not None:
+                    if str(channel.topic).find("-HOnNt") != -1:
+                        count.append(channel.id)
+                        break
+            if len(count) == 1:
+                await msg.edit(f"이미 설정되어있는 채널이 있어요! 채널 - <#{count[0]}>", components=[])
+                return
+            else:
+                if ctx.channel.topic == None:
+                    topic = value
+                else:
+                    topic = ctx.channel.topic + " " + value
+                await ctx.channel.edit(topic=topic)
+                await msg.edit("성공적으로 적용되었어요.",components =[])
+        if value == "-HOnBtd":
+            channels = ctx.guild.text_channels
+            count = []
+            for channel in channels:
+                if channel.topic is not None:
+                    if str(channel.topic).find("-HOnBtd") != -1:
+                        count.append(channel.id)
+                        break
+            if len(count) == 1:
+                await msg.edit(f"이미 설정되어있는 채널이 있어요! 채널 - <#{count[0]}>", components=[])
+                return
+            else:
+                if ctx.channel.topic == None:
+                    topic = value
+                else:
+                    topic = ctx.channel.topic + " " + value
+                await ctx.channel.edit(topic=topic)
+                await msg.edit("성공적으로 적용되었어요.",components =[])
         #print("Before - '{bf}'\nAfter - '{af}'".format(bf=ctx.channel.topic,af=ctx.channel.topic + " " + value))
 
     @commands.command(name="프사")
@@ -263,6 +353,7 @@ class general(commands.Cog):
             inline=True
         )
         await ctx.reply(embed=embed)
+
 
 def setup(bot):
     bot.add_cog(general(bot))

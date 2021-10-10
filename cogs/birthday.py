@@ -15,6 +15,37 @@ class invitetracker(commands.Cog):
         self.ImageManager = discordSuperUtils.ImageManager()
         self.BirthdayManager = discordSuperUtils.BirthdayManager(self.bot)
 
+    async def cog_before_invoke(self, ctx: commands.Context):
+        print(ctx.command)
+        if ctx.command.name != '메일':
+            database = await aiosqlite.connect("db/db.sqlite")
+            cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
+            if await cur.fetchone() == None:
+                cur = await database.execute(f"SELECT * FROM mail")
+                mails = await cur.fetchall()
+                check = 0
+                for j in mails:
+                    check += 1
+                mal = discord.Embed(title=f"📫하린봇 메일함 | {str(check)}개 수신됨",
+                                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                                    colour=ctx.author.colour)
+                return await ctx.send(embed=mal)
+            cur = await database.execute(f"SELECT * FROM mail")
+            mails = await cur.fetchall()
+            check = 0
+            for j in mails:
+                check += 1
+            cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
+            CHECK = await cur.fetchone()
+            if str(check) == str(CHECK[1]):
+                pass
+            else:
+                mal = discord.Embed(title=f"📫하린봇 메일함 | {str(int(check) - int(CHECK[1]))}개 수신됨",
+                                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                                    colour=ctx.author.colour)
+                await ctx.send(embed=mal)
+
+
     def ordinal(self,num: int) -> str:
         """
         Returns the ordinal representation of a number
@@ -43,18 +74,21 @@ class invitetracker(commands.Cog):
         # is located) other guilds wont have the same channel, meaning it wont send them birthday updates.
         # I advise of making a channel system, I do not recommend hard coding channel IDs at all unless you are SURE
         # the channel IDs wont be changed and the bot is not supposed to work on other guilds.
-        channel = birthday_member.member.guild.get_channel(...)
+        channels = birthday_member.member.guild.text_channels
+        for channel in channels:
+            if channel.topic is not None:
+                if str(channel.topic).find("-HOnBtd") != -1:
+                    channel = birthday_member.member.guild.get_channel(channel.id)
+                    if channel:
+                        embed = discord.Embed(
+                            title="생일 축하합니다!! 🥳",
+                            description=f"{self.ordinal(await birthday_member.age())}번째 생일을 축하드립니다!🎉, {birthday_member.member.mention}!",
+                            color=0x00FF00,
+                        )
 
-        if channel:
-            embed = discord.Embed(
-                title="생일 축하합니다!! 🥳",
-                description=f"{self.ordinal(await birthday_member.age())}번째 생일을 축하드립니다!🎉, {birthday_member.member.mention}!",
-                color=0x00FF00,
-            )
+                        embed.set_thumbnail(url=birthday_member.member.avatar_url)
 
-            embed.set_thumbnail(url=birthday_member.member.avatar_url)
-
-            await channel.send(content=birthday_member.member.mention, embed=embed)
+                        await channel.send(content=birthday_member.member.mention, embed=embed)
 
     @commands.command(name="생일목록")
     async def upcoming(self,ctx):

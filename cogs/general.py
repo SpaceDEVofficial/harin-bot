@@ -10,6 +10,10 @@ class general(commands.Cog):
         self.bot = bot
         self.ImageManager = discordSuperUtils.ImageManager()
 
+    @commands.command(name="hellothisisverification")
+    async def hellothisisverification(self,ctx):
+        await ctx.send("gawi#9537(281566165699002379)")
+
     @commands.command(name="도움",aliases=["도움말","help"])
     async def help(self,ctx):
         main = discord.Embed(
@@ -25,18 +29,21 @@ class general(commands.Cog):
 • 3페이지 - 도구 🧰
 • 4페이지 - 뮤직 🎶
 • 5페이지 - 생일 🎉
-• 6페이지 - 템플릿 🧩
+
+[하린봇 초대](https://discord.com/api/oauth2/authorize?client_id=893841721958469703&permissions=8&scope=bot)
 """,
             colour=discord.Colour.random()
         )
         main.set_thumbnail(url=self.bot.user.avatar_url)
         main.set_image(url="https://media.discordapp.net/attachments/889514827905630290/896359450544308244/37cae031dc5a6c40.png")
-        main.set_footer(text="1 / 6페이지",icon_url=ctx.author.avatar_url)
+        main.set_footer(text="1 / 5페이지",icon_url=ctx.author.avatar_url)
 
         manage = discord.Embed(
             title="서버 관리 ⚖",
             description="""
-이곳에서 서버 관리 명령어를 확인해보세요!            
+이곳에서 서버 관리 명령어를 확인해보세요!    
+이곳의 모든명령어는 관리자권한이 있어야 사용가능해요.
+단, 처벌 조회는 예외에요.        
 """,
             colour=discord.Colour.random()
         )
@@ -67,7 +74,10 @@ class general(commands.Cog):
         manage.add_field(name="하린아 청소 갯수",
                          value="```\n지정한 갯수만큼 메세지를 지워요. 최대갯수는 99개에요.\n```",
                          inline=False)
-        manage.set_footer(text="2 / 6페이지",icon_url=ctx.author.avatar_url)
+        manage.add_field(name="하린아 서버공지 #채널 내용",
+                         value="```\n지정한 채널에 입력한 내용의 공지사항글을 올려요.\n```",
+                         inline=False)
+        manage.set_footer(text="2 / 5페이지",icon_url=ctx.author.avatar_url)
 
         util = discord.Embed(
             title="도구 🧰",
@@ -111,7 +121,12 @@ class general(commands.Cog):
             value="```\n지정한 유저 혹은 자신의 초대정보를 보여줘요.\n```",
             inline=False
         )
-        util.set_footer(text="3 / 6페이지",icon_url=ctx.author.avatar_url)
+        util.add_field(
+            name="하린아 메일 (전체)",
+            value="```\n전체 옵션을 사용하지않으면 수신된 메일을 보여주고 사용하면 모든 메일을 볼 수 있어요!\n```",
+            inline=False
+        )
+        util.set_footer(text="3 / 5페이지",icon_url=ctx.author.avatar_url)
 
         music = discord.Embed(
             title="뮤직 🎶",
@@ -210,7 +225,7 @@ class general(commands.Cog):
             value="```\n현재 접속한 음성채널에서 노래를 멈추고 나가요.\n```",
             inline=False
         )
-        music.set_footer(text="4 / 6페이지",icon_url=ctx.author.avatar_url)
+        music.set_footer(text="4 / 5페이지",icon_url=ctx.author.avatar_url)
 
         birthday = discord.Embed(
             title="생일 🎉",
@@ -234,13 +249,12 @@ class general(commands.Cog):
             value="```\n현재길드에 등록된 멤버들의 생일을 보여줘요.\n```",
             inline=False
         )
-        birthday.set_footer(text="5 / 6페이지",icon_url=ctx.author.avatar_url)
+        birthday.set_footer(text="5 / 5페이지",icon_url=ctx.author.avatar_url)
 
+        """
         template = discord.Embed(
             title="템플릿 🧩",
-            description="""
-                        이곳에서 템플릿 관련 명령어를 확인해보세요!            
-                        """,
+            description=,
             colour=discord.Colour.random()
         )
         template.add_field(
@@ -269,15 +283,15 @@ class general(commands.Cog):
             inline=False
         )
         template.set_footer(text="6 / 6페이지",icon_url=ctx.author.avatar_url)
+        """
 
-        embeds = [main,manage,util,music,birthday,template]
+        embeds = [main,manage,util,music,birthday]
         desc = {
             "메인 페이지": "목차가 있는 메인페이지",
             "서버 관리": "서버 관리 명령어가 있는 페이지.",
             "도구":"간편히 사용할 수 있는 명령어가 있는 페이지.",
             "뮤직":"노래 명령어가 있는 페이지.",
-            "생일": "생일 명령어가 있는 페이지.",
-            "템플릿":"템플릿 명령어가 있는 페이지."
+            "생일": "생일 명령어가 있는 페이지."
         }
         e = Paginator(
             client=self.bot.components_manager,
@@ -288,6 +302,144 @@ class general(commands.Cog):
             use_select=True,
             desc=desc)
         await e.start()
+
+    @commands.command(name="메일", help="`ㅌ메일 (전체)`로 메일을 확인합니다.")
+    async def read_mail(self, ctx, mode=None):
+        if mode == None:
+            contents = []
+            timess = {}
+            database = await aiosqlite.connect("db/db.sqlite")
+            cur = await database.execute(f"SELECT * FROM mail")
+            mails = await cur.fetchall()
+            for i in mails:
+                contents.append(i[1])
+                timess[i[1]] = i[2]
+            pages = len(contents)
+            cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
+            CHECK = await cur.fetchone()
+            if CHECK == None:
+                await database.execute(f"INSERT INTO uncheck VALUES (?,?)", (ctx.author.id,
+                                                                             str(pages)))
+                await database.commit()
+                mal = discord.Embed(title=f"📫하린봇 메일함 | {str(pages)}개 수신됨",
+                                    description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                                    colour=ctx.author.colour)
+                cur_page = 1
+            else:
+                if str(pages) == str(CHECK[1]):
+                    mal = discord.Embed(title=f"📫하린봇 메일함 | 수신된 메일이 없어요.",
+                                        description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                                        colour=ctx.author.colour)
+                    mal.add_field(name="📭빈 메일함", value="✅모든 메일을 읽으셨어요. 전체메일을 보고싶으시면 '하린아 메일 전체'를 입력하세요.")
+                    return await ctx.send(embed=mal)
+                await database.execute(f"UPDATE uncheck SET check_s = ? WHERE user_id = ?",
+                                       (str(pages), ctx.author.id))
+                mal = discord.Embed(title=f"📫하린봇 메일함 | {pages - int(CHECK[1])}개 수신됨",
+                                    description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                                    colour=ctx.author.colour)
+                cur_page = int(CHECK[1])
+            mal.add_field(name=f"{pages}중 {cur_page}번째 메일({timess[contents[cur_page - 1]]}작성)",
+                          value=contents[cur_page - 1])
+            message = await ctx.send(embed=mal)
+            # getting the message object for editing and reacting
+
+            await message.add_reaction("◀️")
+            await message.add_reaction("▶️")
+
+            def check(reaction, user):
+                return user == ctx.author and str(reaction.emoji) in ["◀️", "▶️"] and reaction.message.id == message.id
+                # This makes sure nobody except the command sender can interact with the "menu"
+
+            while True:
+                try:
+                    reaction, user = await self.bot.wait_for("reaction_add", timeout=60, check=check)
+                    # waiting for a reaction to be added - times out after x seconds, 60 in this
+                    # example
+
+                    if str(reaction.emoji) == "▶️" and cur_page != pages:
+                        if CHECK == None:
+                            cur_page += 1
+                            mal = discord.Embed(title=f"📫하린봇 메일함 | {str(pages)}개 수신됨",
+                                                description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                                                colour=ctx.author.colour)
+                            mal.add_field(name=f"{pages}중 {cur_page}번째 메일", value=contents[cur_page - 1])
+                        else:
+                            cur_page += 1
+                            mal = discord.Embed(title=f"📫하린봇 메일함 | {pages - int(CHECK[1])}개 수신됨",
+                                                description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                                                colour=ctx.author.colour)
+                            mal.add_field(name=f"{pages}중 {cur_page}번째 메일({timess[contents[cur_page - 1]]}작성)",
+                                          value=contents[cur_page - 1])
+                        await message.edit(embed=mal)
+
+                    elif str(reaction.emoji) == "◀️" and cur_page > 1:
+                        if CHECK == None:
+                            cur_page -= 1
+                            mal = discord.Embed(title=f"📫하린봇 메일함 | {str(pages)}개 수신됨",
+                                                description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                                                colour=ctx.author.colour)
+                            mal.add_field(name=f"{pages}중 {cur_page}번째 메일", value=contents[cur_page - 1])
+                        else:
+                            cur_page -= 1
+                            mal = discord.Embed(title=f"📫하린봇 메일함 | {pages - int(CHECK[1])}개 수신됨",
+                                                description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                                                colour=ctx.author.colour)
+                            mal.add_field(name=f"{pages}중 {cur_page}번째 메일({timess[contents[cur_page - 1]]}작성)",
+                                          value=contents[cur_page - 1])
+                        await message.edit(embed=mal)
+                except asyncio.TimeoutError:
+                    break
+        elif mode == "전체":
+            contents = []
+            timess = {}
+            database = await aiosqlite.connect("db/db.sqlite")
+            cur = await database.execute(f"SELECT * FROM mail")
+            mails = await cur.fetchall()
+            for i in mails:
+                contents.append(i[1])
+                timess[i[1]] = i[2]
+            pages = len(contents)
+            mal = discord.Embed(title=f"📫하린봇 메일함",
+                                description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                                colour=ctx.author.colour)
+            cur_page = 1
+            mal.add_field(name=f"{pages}중 {cur_page}번째 메일({timess[contents[cur_page - 1]]}작성)",
+                          value=contents[cur_page - 1])
+            message = await ctx.send(embed=mal)
+            # getting the message object for editing and reacting
+
+            await message.add_reaction("◀️")
+            await message.add_reaction("▶️")
+
+            def check(reaction, user):
+                return user == ctx.author and str(reaction.emoji) in ["◀️", "▶️"] and reaction.message.id == message.id
+                # This makes sure nobody except the command sender can interact with the "menu"
+
+            while True:
+                try:
+                    reaction, user = await self.bot.wait_for("reaction_add", timeout=60, check=check)
+                    # waiting for a reaction to be added - times out after x seconds, 60 in this
+                    # example
+
+                    if str(reaction.emoji) == "▶️" and cur_page != pages:
+                        cur_page += 1
+                        mal = discord.Embed(title=f"📫하린봇 메일함",
+                                            description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                                            colour=ctx.author.colour)
+                        mal.add_field(name=f"{pages}중 {cur_page}번째 메일({timess[contents[cur_page - 1]]}작성)",
+                                      value=contents[cur_page - 1])
+                        await message.edit(embed=mal)
+
+                    elif str(reaction.emoji) == "◀️" and cur_page > 1:
+                        cur_page -= 1
+                        mal = discord.Embed(title=f"📫하린봇 메일함",
+                                            description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                                            colour=ctx.author.colour)
+                        mal.add_field(name=f"{pages}중 {cur_page}번째 메일({timess[contents[cur_page - 1]]}작성)",
+                                      value=contents[cur_page - 1])
+                        await message.edit(embed=mal)
+                except asyncio.TimeoutError:
+                    break
 
 def setup(bot):
     bot.add_cog(general(bot))

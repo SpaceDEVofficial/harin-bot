@@ -1,3 +1,4 @@
+import aiosqlite
 import discord
 from discord.ext import commands
 
@@ -63,6 +64,36 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
         self.ImageManager = discordSuperUtils.ImageManager()
         super().__init__()
 
+    async def cog_before_invoke(self, ctx: commands.Context):
+        print(ctx.command)
+        if ctx.command.name != '메일':
+            database = await aiosqlite.connect("db/db.sqlite")
+            cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
+            if await cur.fetchone() == None:
+                cur = await database.execute(f"SELECT * FROM mail")
+                mails = await cur.fetchall()
+                check = 0
+                for j in mails:
+                    check += 1
+                mal = discord.Embed(title=f"📫하린봇 메일함 | {str(check)}개 수신됨",
+                                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                                    colour=ctx.author.colour)
+                return await ctx.send(embed=mal)
+            cur = await database.execute(f"SELECT * FROM mail")
+            mails = await cur.fetchall()
+            check = 0
+            for j in mails:
+                check += 1
+            cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
+            CHECK = await cur.fetchone()
+            if str(check) == str(CHECK[1]):
+                pass
+            else:
+                mal = discord.Embed(title=f"📫하린봇 메일함 | {str(int(check) - int(CHECK[1]))}개 수신됨",
+                                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                                    colour=ctx.author.colour)
+                await ctx.send(embed=mal)
+
     # Play function
     async def play_cmd(self, ctx, query):
         async with ctx.typing():
@@ -75,11 +106,11 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
             await self.MusicManager.queue_add(players=player, ctx=ctx)
 
             if not await self.MusicManager.play(ctx):
-                await ctx.send(f"Added {player[0].title} to song queue.")
+                await ctx.send(f"{player[0].title}을 큐에 추가했어요.")
             else:
                 await ctx.send("✅")
         else:
-            await ctx.send("Query not found.")
+            await ctx.send("쿼리를 찾지 못했어요.")
 
     # cog error handler
     async def cog_command_error(
@@ -91,15 +122,15 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
     @discordSuperUtils.CogManager.event(discordSuperUtils.MusicManager)
     async def on_music_error(self, ctx, error):
         errors = {
-            discordSuperUtils.NotPlaying: "Not playing any music right now...",
-            discordSuperUtils.NotConnected: f"Bot not connected to a voice channel!",
-            discordSuperUtils.NotPaused: "Player is not paused!",
-            discordSuperUtils.QueueEmpty: "The queue is empty!",
-            discordSuperUtils.AlreadyConnected: "Already connected to voice channel!",
-            discordSuperUtils.QueueError: "There has been a queue error!",
-            discordSuperUtils.SkipError: "There is no song to skip to!",
-            discordSuperUtils.UserNotConnected: "User is not connected to a voice channel!",
-            discordSuperUtils.InvalidSkipIndex: "That skip index is invalid!",
+            discordSuperUtils.NotPlaying: "지금은 노래를 재생중이지 않아요..",
+            discordSuperUtils.NotConnected: f"제가 아직 음성채널에 접속중이지 않아요!",
+            discordSuperUtils.NotPaused: "노래가 아직 멈추지않았어요!",
+            discordSuperUtils.QueueEmpty: "큐가 비어있어요!",
+            discordSuperUtils.AlreadyConnected: "이미 음성채널에 접속되어있어요!",
+            discordSuperUtils.QueueError: "큐에 문제가 생겼어요!",
+            discordSuperUtils.SkipError: "스킵할 노래가 없어요!",
+            discordSuperUtils.UserNotConnected: "명령자님이 아직 음성채널에 접속중이지 않아요!",
+            discordSuperUtils.InvalidSkipIndex: "스킵인덱스값은 사용할 수가 없어요!",
         }
 
         for error_type, response in errors.items():
@@ -139,19 +170,19 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
     @discordSuperUtils.CogManager.event(discordSuperUtils.MusicManager)
     async def on_queue_end(self, ctx):
         print(f"The queue has ended in {ctx}")
-        await ctx.send("Queue ended")
+        await ctx.send("큐가 끝났어요.")
         # You could wait and check activity, etc...
 
     # On inactivity disconnect event
     @discordSuperUtils.CogManager.event(discordSuperUtils.MusicManager)
     async def on_inactivity_disconnect(self, ctx):
         print(f"I have left {ctx} due to inactivity")
-        await ctx.send("Left Music Channel due to inactivity")
+        await ctx.send("사용하지않아 채널에서 나갔어요")
 
     # On ready event
 
     # Leave command
-    @commands.command()
+    @commands.command(name="나가")
     async def leave(self, ctx):
         if await self.MusicManager.leave(ctx):
             await ctx.send("👋")
@@ -159,7 +190,7 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
             # await message.add_reaction("👋")
 
     # Lyrics command
-    @commands.command()
+    @commands.command(name="가사")
     async def lyrics(self, ctx, *, query=None):
         if response := await self.MusicManager.lyrics(ctx, query):
             # If lyrics are found
@@ -177,7 +208,7 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
             # Creating embeds list for PageManager
             embeds = [
                 discord.Embed(
-                    title=f"Lyrics for '{title}' by '{author}', (Page {i + 1}/{len(res)})",
+                    title=f"'{title}'의 가사, 요청자 - '{author}', (페이지 {i + 1}/{len(res)})",
                     description=x,
                 )
                 for i, x in enumerate(res)
@@ -195,10 +226,10 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
             await page_manager.run()
 
         else:
-            await ctx.send("No lyrics were found for the song")
+            await ctx.send("가사를 찾을 수가 없어요")
 
     # Now playing command
-    @commands.command()
+    @commands.command(name="지금곡")
     async def now_playing(self, ctx):
         if player := await self.MusicManager.now_playing(ctx):
             # Played duration
@@ -209,11 +240,11 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
             # Loop status
             loop = (await self.MusicManager.get_queue(ctx)).loop
             if loop == discordSuperUtils.Loops.LOOP:
-                loop_status = "Looping enabled."
+                loop_status = "반복기능이 활성화 되었어요. <:activ:896255701641474068>"
             elif loop == discordSuperUtils.Loops.QUEUE_LOOP:
-                loop_status = "Queue looping enabled."
+                loop_status = "큐 반복기능이 활성화 되었어요. <:activ:896255701641474068>"
             else:
-                loop_status = "Looping Disabled"
+                loop_status = "반복 기능이 비활성화 되었어요. <:disactiv:896388083816218654>"
 
             # Fecthing other details
             thumbnail = player.data["videoDetails"]["thumbnail"]["thumbnails"][-1][
@@ -232,14 +263,14 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
                 timestamp=datetime.datetime.utcnow(),
                 color=discord.Color.from_rgb(0, 255, 255),
             )
-            embed.add_field(name="Played", value=parse_duration(duration_played))
-            embed.add_field(name="Duration", value=parse_duration(player.duration))
-            embed.add_field(name="Loop", value=loop_status)
-            embed.add_field(name="Requested by", value=requester)
-            embed.add_field(name="Uploader", value=uploader)
+            embed.add_field(name="현재 재생시간", value=parse_duration(duration_played))
+            embed.add_field(name="재생길이", value=parse_duration(player.duration))
+            embed.add_field(name="반복상태", value=loop_status)
+            embed.add_field(name="요청자", value=requester)
+            embed.add_field(name="업로더", value=uploader)
             embed.add_field(name="URL", value=f"[Click]({url})")
-            embed.add_field(name="Views", value=parse_count(int(views)))
-            embed.add_field(name="Rating", value=rating)
+            embed.add_field(name="조회수", value=parse_count(int(views)))
+            embed.add_field(name="별점", value=rating)
             embed.set_thumbnail(url=thumbnail)
             embed.set_image(url=r"https://i.imgur.com/ufxvZ0j.gif")
             embed.set_author(name=ctx.author.name, icon_url=ctx.author.avatar_url)
@@ -247,65 +278,69 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
             await ctx.send(embed=embed)
 
     # Join voice channel command
-    @commands.command()
+    @commands.command(name="들어와")
     async def join(self, ctx):
         if await self.MusicManager.join(ctx):
-            await ctx.send("Joined Voice Channel")
+            await ctx.send(f"{ctx.author.voice.channel.mention}에 접속했어요!")
 
     # Play song command
-    @commands.command()
+    @commands.command(name="재생")
     async def play(self, ctx, *, query: str):
         # Calling the play function
         await Music.play_cmd(self, ctx, query)
 
     # Pause command
-    @commands.command()
+    @commands.command(name="일시정지")
     async def pause(self, ctx):
         if await self.MusicManager.pause(ctx):
-            await ctx.send("Paused")
+            await ctx.send("일시정지했어요. ⏸")
 
     # Resume command
-    @commands.command()
+    @commands.command(name="이어재생")
     async def resume(self, ctx):
         if await self.MusicManager.resume(ctx):
-            await ctx.send("Resumed")
+            await ctx.send("이어서 재생할게요. ⏯")
 
     # Volume command
-    @commands.command()
-    async def volume(self, ctx, volume: int):
-        if current_volume := await self.MusicManager.volume(ctx, volume) is not None:
-            await ctx.send(f"Volume set to {current_volume}%")
+    @commands.command(name="볼륨")
+    async def volume(self, ctx, volume: int = None):
+        if volume == None:
+            current_volume = await self.MusicManager.volume(ctx)
+            await ctx.send("현재 볼륨 " + current_volume +"%")
+        if await self.MusicManager.volume(ctx, volume) is not None:
+            current_volume = await self.MusicManager.volume(ctx, volume)
+            await ctx.send(f"볼름은 다음으로 설정했어요. `{current_volume}%`")
 
     # Song loop command
-    @commands.command()
+    @commands.command(name="루프")
     async def loop(self, ctx):
         is_loop = await self.MusicManager.loop(ctx)
 
         if is_loop is not None:
-            await ctx.send(f"Looping {'Enabled' if is_loop else 'Disabled'}")
+            await ctx.send(f"반복기능을 {'활성화 <:activ:896255701641474068>' if is_loop else '비활성화 <:disactiv:896388083816218654>'} 했어요")
 
     # Queue loop command
-    @commands.command()
+    @commands.command(name="큐루프")
     async def queueloop(self, ctx):
         is_loop = await self.MusicManager.queueloop(ctx)
 
         if is_loop is not None:
-            await ctx.send(f"Queue Looping {'Enabled' if is_loop else 'Disabled'}")
+            await ctx.send(f"큐반복기능을 {'활성화 <:activ:896255701641474068>' if is_loop else '비활성화 <:disactiv:896388083816218654>'} 했어요")
 
     # History command
-    @commands.command()
+    @commands.command(name="노래기록")
     async def history(self, ctx):
         if queue := await self.MusicManager.get_queue(ctx):
             auto = "Autoplay"
             formatted_history = [
-                f"Title: '{x.title}\nRequester: {x.requester.mention if x.requester else auto}"
+                f"제목: '{x.title}\n요청자: {x.requester.mention if x.requester else auto}"
                 for x in queue.history
             ]
 
             embeds = discordSuperUtils.generate_embeds(
                 formatted_history,
-                "Song History",
-                "Shows all played songs",
+                "노래 기록",
+                "지금까지 재생한 곡의 기록을 보여드려요",
                 25,
                 string_format="{}",
             )
@@ -316,13 +351,13 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
             await discordSuperUtils.PageManager(ctx, embeds, public=True).run()
 
     # Stop command
-    @commands.command()
+    @commands.command(name="정지")
     async def stop(self, ctx):
         await self.MusicManager.cleanup(ctx.voice_client, ctx.guild)
         await ctx.send("⏹️")
 
     # Skip command with voting
-    @commands.command()
+    @commands.command(name="스킵")
     async def skip(self, ctx, index: int = None):
         if queue := (await self.MusicManager.get_queue(ctx)):
             voter = ctx.author
@@ -330,12 +365,12 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
 
             # Checking if the song is autoplayed
             if requester == None:
-                await ctx.send("Skipped autoplayed song")
+                await ctx.send("자동재생 곡을 스킵했어요.⏩")
                 await self.MusicManager.skip(ctx, index)
 
             # Checking if queue is empty and autoplay is disabled
             elif not queue.queue and not queue.autoplay:
-                await ctx.send("Can't skip the last song of queue.")
+                await ctx.send("큐의 마지막 곡을 스킵할 수 없어요")
 
             else:
                 # Checking if guild id list is in skip votes dictionary
@@ -349,10 +384,10 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
                 if voter == (await self.MusicManager.now_playing(ctx)).requester:
                     skipped_player = await self.MusicManager.skip(ctx, index)
 
-                    await ctx.send("Skipped by requester")
+                    await ctx.send("요청자의 요청으로 스킵했어요. ⏩")
 
                     if not skipped_player.requester:
-                        await ctx.send("Autoplaying next song.")
+                        await ctx.send("다음 자동재생곡으로 스킵했어요. ⏩")
 
                     # clearing the skip votes
                     self.skip_votes.pop(ctx.guild.id)
@@ -371,10 +406,10 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
                     if total_votes >= 3:
                         skipped_player = await self.MusicManager.skip(ctx, index)
 
-                        await ctx.send("Skipped on vote")
+                        await ctx.send("투표로 스킵되어졌어요. ⏩")
 
                         if not skipped_player.requester:
-                            await ctx.send("Autoplaying next song.")
+                            await ctx.send("다음 자동재생곡으로 스킵했어요. ⏩")
 
                         # Clearing skip votes of the guild
                         self.skip_votes.pop(ctx.guild.id)
@@ -382,26 +417,26 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
                     # Shows voting status
                     else:
                         await ctx.send(
-                            f"Skip vote added, currently at **{total_votes}/3**"
+                            f"스킵 투표가 추가되었어요, 현재 투표수 -  **{total_votes}/3**"
                         )
 
                 # If someone uses vote command twice
                 else:
-                    await ctx.send("You have already voted to skip this song.")
+                    await ctx.send("이미 현재곡에 투표하셨어요!")
 
     # Queue command
-    @commands.command()
+    @commands.command(name="큐")
     async def queue(self, ctx):
         if queue := await self.MusicManager.get_queue(ctx):
             auto = "Autoplay"
             formatted_queue = [
-                f"Title: '{x.title}\nRequester: {x.requester.mention if x.requester else auto}"
+                f"제목: '{x.title}\n요청자: {x.requester.mention if x.requester else auto}"
                 for x in queue.queue
             ]
 
             embeds = discordSuperUtils.generate_embeds(
                 formatted_queue,
-                "Queue",  # Title of embed
+                "큐",  # Title of embed
                 f"Now Playing: {await self.MusicManager.now_playing(ctx)}",
                 25,  # Number of rows in one pane
                 string_format="{}",
@@ -414,20 +449,20 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
             await discordSuperUtils.PageManager(ctx, embeds, public=True).run()
 
     # Loop status command
-    @commands.command()
+    @commands.command(name="반복확인")
     async def loop_check(self, ctx):
         if queue := await self.MusicManager.get_queue(ctx):
             loop = queue.loop
             loop_status = None
 
             if loop == discordSuperUtils.Loops.LOOP:
-                loop_status = "Looping enabled."
+                loop_status = "반복 기능이 활성화 되었어요. <:activ:896255701641474068>"
 
             elif loop == discordSuperUtils.Loops.QUEUE_LOOP:
-                loop_status = "Queue looping enabled."
+                loop_status = "큐 반복 기능이 활성화 되었어요. <:activ:896255701641474068>"
 
             elif loop == discordSuperUtils.Loops.NO_LOOP:
-                loop_status = "No loop enabled."
+                loop_status = "반복 기능이 비활성화 되었어요. <:disactiv:896388083816218654>"
 
             if loop_status:
                 embed = discord.Embed(
@@ -439,76 +474,38 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
                 await ctx.send(embed=embed)
 
     # Autoplay command
-    @commands.command()
+    @commands.command(name="자동재생")
     async def autoplay(self, ctx):
         is_autoplay = await self.MusicManager.autoplay(ctx)
 
         if is_autoplay is not None:
-            await ctx.send(f"Autoplay toggled to {is_autoplay}")
+            if is_autoplay:
+                await ctx.send(f"자동재생이 황성화되었어요.")
+            else:
+                await ctx.send(f"자동재생이 비황성화되었어요.")
 
     # Shuffle command
-    @commands.command()
+    @commands.command(name="셔플")
     async def shuffle(self, ctx):
         is_shuffle = await self.MusicManager.shuffle(ctx)
 
         if is_shuffle is not None:
-            await ctx.send(f"Shuffle toggled to {is_shuffle}")
+            if is_shuffle:
+                await ctx.send(f"셔플이 황성화되었어요.")
+            else:
+                await ctx.send(f"셔플 비황성화되었어요.")
 
     # Previous/Rewind command
-    @commands.command()
+    @commands.command(name="이전곡")
     async def previous(self, ctx, index: int = None):
         if previous_player := await self.MusicManager.previous(ctx, index):
-            await ctx.send(f"Rewinding from {previous_player[0].title}")
+            await ctx.send(f"{previous_player[0].title}로부터 이전곡을 재생해요")
 
-    # Spotify song details of a user
-    @commands.command()
-    async def spotify_user_song(self, ctx, member: discord.Member = None):
-        member = member if member else ctx.author
-        spotify_result = next(
-            (
-                activity
-                for activity in member.activities
-                if isinstance(activity, discord.Spotify)
-            ),
-            None,
-        )
 
-        if spotify_result is None:
-            await ctx.send(f"{member.mention} is not listening to Spotify.")
-            return
-
-        image = await self.ImageManager.create_spotify_card(
-            spotify_activity=spotify_result, font_path=None
-        )
-
-        await ctx.send(file=image)
-
-    # Spotify song from user
-    @commands.command()
-    async def play_user_spotify(self, ctx, member: discord.Member = None):
-        member = member if member else ctx.author
-        spotify_result = next(
-            (
-                activity
-                for activity in member.activities
-                if isinstance(activity, discord.Spotify)
-            ),
-            None,
-        )
-
-        if spotify_result:
-            await ctx.send(f"{member.mention} is not listening to Spotify.")
-            return
-
-        query = f"{spotify_result.title} {spotify_result.artist}"
-
-        # Calling the play function
-        await Music.play_cmd(self, ctx, query)
 
     # Before invoke checks. Add more commands if you wish to
     @join.before_invoke
     @play.before_invoke
-    @play_user_spotify.before_invoke
     async def ensure_voice_state(self, ctx: commands.Context):
         if not ctx.author.voice or not ctx.author.voice.channel:
             await ctx.send("You are not connected to any voice channel.")

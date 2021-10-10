@@ -41,6 +41,7 @@ class manage(commands.Cog):
 
 
     @commands.command(name="뮤트")
+    @commands.has_permissions(administrator=True)
     async def mute(
             self,
             ctx,
@@ -57,6 +58,7 @@ class manage(commands.Cog):
             await ctx.send(f"{member}님은 뮤트되었어요. 뮤트 사유: {reason}")
 
     @commands.command(name="언뮤트")
+    @commands.has_permissions(administrator=True)
     async def unmute(self,ctx, member: discord.Member):
         await self.MuteManager.connect_to_database(self.bot.db, ["mutes"])
         if await self.MuteManager.unmute(member):
@@ -65,6 +67,7 @@ class manage(commands.Cog):
             await ctx.send(f"{member.mention}은 뮤트되어있지 않아요!")
 
     @commands.command(name="밴")
+    @commands.has_permissions(administrator=True)
     async def ban(
             self,
             ctx,
@@ -77,6 +80,7 @@ class manage(commands.Cog):
         await self.BanManager.ban(member, reason, time_of_ban)
 
     @commands.command(name="언밴")
+    @commands.has_permissions(administrator=True)
     async def unban(self,ctx, user: discord.User):
         await self.BanManager.connect_to_database(self.bot.db, ["bans"])
         if await self.BanManager.unban(user, guild=ctx.guild):
@@ -99,6 +103,7 @@ class manage(commands.Cog):
         await e.start()
 
     @infractions.command(name="추가")
+    @commands.has_permissions(administrator=True)
     async def add(self,ctx, member: discord.Member, reason: str = "No reason specified."):
         await self.InfractionManager.connect_to_database(self.bot.db, ["infractions"])
         infraction = await self.InfractionManager.warn(ctx, member, reason)
@@ -144,6 +149,7 @@ class manage(commands.Cog):
 
 
     @infractions.command(name="제거",aliases=["삭제","취소"])
+    @commands.has_permissions(administrator=True)
     async def remove(self,ctx, member: discord.Member, infraction_id: str):
         await self.InfractionManager.connect_to_database(self.bot.db, ["infractions"])
         infractions_found = await self.InfractionManager.get_infractions(
@@ -175,6 +181,7 @@ class manage(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command(name="청소")
+    @commands.has_permissions(administrator=True)
     async def channel_purge(self,ctx,limit:int):
         if limit <= 99:
             await ctx.channel.purge(limit=limit)
@@ -182,6 +189,16 @@ class manage(commands.Cog):
         else:
             await ctx.reply(f"99개 이하의 수를 입력해주세요")
 
+    @commands.command(name="서버공지")
+    @commands.has_permissions(administrator=True)
+    async def notice_server(self, ctx, channel: discord.TextChannel, *, value):
+        em = discord.Embed(
+            title=f"{ctx.guild}공지사항",
+            description=value,
+            colour=discord.Colour.random()
+        )
+        em.set_footer(text="이 공지는 하린봇과 무관한 서버별 공지기능입니다.")
+        await channel.send(embed=em)
 
 def setup(bot):
     bot.add_cog(manage(bot))
