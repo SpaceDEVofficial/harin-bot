@@ -21,42 +21,44 @@ class Leveling(commands.Cog, discordSuperUtils.CogManager.Cog):
         print(ctx.command)
         if ctx.command.name != '메일':
             database = await aiosqlite.connect("db/db.sqlite")
-            cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
+            cur = await database.execute(
+                'SELECT * FROM uncheck WHERE user_id = ?', (ctx.author.id,)
+            )
+
             if await cur.fetchone() is None:
                 cur = await database.execute(f"SELECT * FROM mail")
                 mails = await cur.fetchall()
-                check = 0
-                for _j in mails:
-                    check += 1
-                mal = discord.Embed(title=f"📫하린봇 메일함 | {str(check)}개 수신됨",
-                                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
-                                    colour=ctx.author.colour)
+                check = sum(1 for _ in mails)
+                mal = discord.Embed(
+                    title=f'📫하린봇 메일함 | {check}개 수신됨',
+                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                    colour=ctx.author.colour,
+                )
+
                 return await ctx.send(embed=mal)
-            cur = await database.execute(f"SELECT * FROM mail")
+            cur = await database.execute('SELECT * FROM mail')
             mails = await cur.fetchall()
-            check = 0
-            for _j in mails:
-                check += 1
+            check = sum(1 for _ in mails)
             cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
             check2 = await cur.fetchone()
-            if str(check) == str(check2[1]):
-                pass
-            else:
-                mal = discord.Embed(title=f"📫하린봇 메일함 | {str(int(check) - int(check2[1]))}개 수신됨",
-                                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
-                                    colour=ctx.author.colour)
+            if str(check) != str(check2[1]):
+                mal = discord.Embed(
+                    title=f'📫하린봇 메일함 | {int(check) - int(check2[1])}개 수신됨',
+                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                    colour=ctx.author.colour,
+                )
+
                 await ctx.send(embed=mal)
 
+    # noinspection PyUnusedLocal
     @discordSuperUtils.CogManager.event(discordSuperUtils.LevelingManager)
     async def on_level_up(self, message, member_data, roles):
-        if message.guild.id == 653083797763522580 or message.guild.id == 786470326732587008:
+        if message.guild.id in [653083797763522580, 786470326732587008]:
             return
         if str(message.channel.topic).find("-HNoLv") != -1:
             await message.reply(
                 f"🆙축하합니다! `{await member_data.level()}`로 레벨업 하셨어요!🆙"
             )
-        else:
-            pass
 
     @commands.command(name="랭크", aliases=["레벨"])
     async def rank(self, ctx, member: discord.Member = None):
@@ -64,13 +66,11 @@ class Leveling(commands.Cog, discordSuperUtils.CogManager.Cog):
         await self.LevelingManager.connect_to_database(
             database, ["xp", "roles", "role_list"]
         )
-        mem_obj = member if member else ctx.author
+        mem_obj = member or ctx.author
         member_data = await self.LevelingManager.get_account(mem_obj)
 
         if not member_data:
-            await ctx.send(
-                f"정보를 만들고있어요! 조금만 기다려주세요!😘"
-            )
+            await ctx.send('정보를 만들고있어요! 조금만 기다려주세요!😘')
             return
 
         guild_leaderboard = await self.LevelingManager.get_leaderboard(ctx.guild)
