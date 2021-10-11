@@ -359,7 +359,7 @@ class general(commands.Cog):
                     # example
 
                     if str(reaction.emoji) == "▶️" and cur_page != pages:
-                        if CHECK is not None:
+                        if CHECK is None:
                             cur_page += 1
                             mal = discord.Embed(title=f"📫하린봇 메일함 | {str(pages)}개 수신됨",
                                                 description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
@@ -375,7 +375,7 @@ class general(commands.Cog):
                         await message.edit(embed=mal)
 
                     elif str(reaction.emoji) == "◀️" and cur_page > 1:
-                        if CHECK is not None:
+                        if CHECK is None:
                             cur_page -= 1
                             mal = discord.Embed(title=f"📫하린봇 메일함 | {str(pages)}개 수신됨",
                                                 description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
