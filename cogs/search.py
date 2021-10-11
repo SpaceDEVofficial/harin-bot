@@ -62,13 +62,13 @@ class search(commands.Cog):
             if len(scinfo) >= 2:
                 await msg.delete()
                 many_msg = await ctx.reply(
-                    f"학교명이 같은 학교가 `{len(scinfo)}`개 있어요.\n아래에서 검색하시려는 학교를 선택해주세요.",
+                    f"학교명이 같은 학교가 `{len(scinfo[:25])}`개 있어요.\n아래에서 검색하시려는 학교를 선택해주세요.",
                     components=[
                         Select(
                             placeholder="학교를 선택해주세요.",
                             options=[
                                 SelectOption(label=i.SCHUL_NM, value=f"{i.SD_SCHUL_CODE}",
-                                             description="지역 - {}".format(i.LCTN_SC_NM),emoji="🏫") for i in scinfo
+                                             description="지역 - {}".format(i.LCTN_SC_NM),emoji="🏫") for i in scinfo[:25]
                             ],
                         ),
                     ],
@@ -109,20 +109,20 @@ class search(commands.Cog):
             return await ctx.reply("학교명을 입력해주세요!")
         if dates == None:
             now = datetime.datetime.now()
-            dates = f"{now.year}{now.month}{now.date()}"
+            dates = f"{now.year}{now.month}{now.day}"
         msg = await ctx.reply("검색중이니 조금만 기다려주세요! <a:loading:888625946565935167>")
         neis = Neispy(KEY=os.getenv("NEIS_TOKEN"))
         scinfo = await neis.schoolInfo(SCHUL_NM=school)
         if len(scinfo) >= 2:
             await msg.delete()
             many_msg = await ctx.reply(
-                f"학교명이 같은 학교가 `{len(scinfo)}`개 있어요.\n아래에서 검색하시려는 학교를 선택해주세요.",
+                f"학교명이 같은 학교가 `{len(scinfo[:25])}`개 있어요.\n아래에서 검색하시려는 학교를 선택해주세요.",
                 components=[
                     Select(
                         placeholder="학교를 선택해주세요.",
                         options=[
                             SelectOption(label=i.SCHUL_NM, value=i.SD_SCHUL_CODE,
-                                         description="지역 - {}".format(i.LCTN_SC_NM),emoji="🏫") for i in scinfo
+                                         description="지역 - {}".format(i.LCTN_SC_NM),emoji="🏫") for i in scinfo[:25]
                         ],
                     ),
                 ],
