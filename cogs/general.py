@@ -318,8 +318,8 @@ class general(commands.Cog):
                 timess[i[1]] = i[2]
             pages = len(contents)
             cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
-            CHECK = await cur.fetchone()
-            if CHECK is None:
+            check2 = await cur.fetchone()
+            if check2 is None:
                 await database.execute(f"INSERT INTO uncheck VALUES (?,?)", (ctx.author.id,
                                                                              str(pages)))
                 await database.commit()
@@ -328,7 +328,7 @@ class general(commands.Cog):
                                     colour=ctx.author.colour)
                 cur_page = 1
             else:
-                if str(pages) == str(CHECK[1]):
+                if str(pages) == str(check2[1]):
                     mal = discord.Embed(title=f"📫하린봇 메일함 | 수신된 메일이 없어요.",
                                         description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
                                         colour=ctx.author.colour)
@@ -336,10 +336,10 @@ class general(commands.Cog):
                     return await ctx.send(embed=mal)
                 await database.execute(f"UPDATE uncheck SET check_s = ? WHERE user_id = ?",
                                        (str(pages), ctx.author.id))
-                mal = discord.Embed(title=f"📫하린봇 메일함 | {pages - int(CHECK[1])}개 수신됨",
+                mal = discord.Embed(title=f"📫하린봇 메일함 | {pages - int(check2[1])}개 수신됨",
                                     description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
                                     colour=ctx.author.colour)
-                cur_page = int(CHECK[1])
+                cur_page = int(check2[1])
             mal.add_field(name=f"{pages}중 {cur_page}번째 메일({timess[contents[cur_page - 1]]}작성)",
                           value=contents[cur_page - 1])
             message = await ctx.send(embed=mal)
@@ -359,7 +359,7 @@ class general(commands.Cog):
                     # example
 
                     if str(reaction.emoji) == "▶️" and cur_page != pages:
-                        if CHECK is None:
+                        if check2 is None:
                             cur_page += 1
                             mal = discord.Embed(title=f"📫하린봇 메일함 | {str(pages)}개 수신됨",
                                                 description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
@@ -367,7 +367,7 @@ class general(commands.Cog):
                             mal.add_field(name=f"{pages}중 {cur_page}번째 메일", value=contents[cur_page - 1])
                         else:
                             cur_page += 1
-                            mal = discord.Embed(title=f"📫하린봇 메일함 | {pages - int(CHECK[1])}개 수신됨",
+                            mal = discord.Embed(title=f"📫하린봇 메일함 | {pages - int(check2[1])}개 수신됨",
                                                 description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
                                                 colour=ctx.author.colour)
                             mal.add_field(name=f"{pages}중 {cur_page}번째 메일({timess[contents[cur_page - 1]]}작성)",
@@ -375,7 +375,7 @@ class general(commands.Cog):
                         await message.edit(embed=mal)
 
                     elif str(reaction.emoji) == "◀️" and cur_page > 1:
-                        if CHECK is None:
+                        if check2 is None:
                             cur_page -= 1
                             mal = discord.Embed(title=f"📫하린봇 메일함 | {str(pages)}개 수신됨",
                                                 description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
@@ -383,7 +383,7 @@ class general(commands.Cog):
                             mal.add_field(name=f"{pages}중 {cur_page}번째 메일", value=contents[cur_page - 1])
                         else:
                             cur_page -= 1
-                            mal = discord.Embed(title=f"📫하린봇 메일함 | {pages - int(CHECK[1])}개 수신됨",
+                            mal = discord.Embed(title=f"📫하린봇 메일함 | {pages - int(check2[1])}개 수신됨",
                                                 description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
                                                 colour=ctx.author.colour)
                             mal.add_field(name=f"{pages}중 {cur_page}번째 메일({timess[contents[cur_page - 1]]}작성)",
