@@ -19,6 +19,7 @@ def parse_duration(duration: Optional[float]) -> str:
 
 
 # Format view count
+# noinspection DuplicatedCode
 def parse_count(count):
     original_count = count
 
@@ -63,6 +64,7 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
         self.ImageManager = discordSuperUtils.ImageManager()
         super().__init__()
 
+    # noinspection DuplicatedCode
     async def cog_before_invoke(self, ctx: commands.Context):
         print(ctx.command)
         if ctx.command.name != '메일':

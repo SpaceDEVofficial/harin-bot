@@ -1,18 +1,15 @@
-import io
 import asyncio
 import platform
-import traceback
+
 import aiosqlite
 import discord
 from discord.ext import commands
-import discordSuperUtils
 from pycord_components import (
-    Button,
-    ButtonStyle,
     Select,
-    SelectOption,
-    ActionRow
+    SelectOption
 )
+
+
 class general(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
