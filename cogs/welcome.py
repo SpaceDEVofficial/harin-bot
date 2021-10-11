@@ -3,7 +3,7 @@ import discordSuperUtils
 from discord.ext import commands
 
 
-class welcome(commands.Cog):
+class Welcome(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.ImageManager = discordSuperUtils.ImageManager()
@@ -31,4 +31,4 @@ class welcome(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(welcome(bot))
+    bot.add_cog(Welcome(bot))
