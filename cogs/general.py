@@ -6,7 +6,8 @@ from discord.ext import commands
 import discordSuperUtils
 
 
-class general(commands.Cog):
+# noinspection PyShadowingNames
+class General(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.ImageManager = discordSuperUtils.ImageManager()
@@ -308,16 +309,12 @@ class general(commands.Cog):
     @commands.command(name="메일", help="`ㅌ메일 (전체)`로 메일을 확인합니다.")
     async def read_mail(self, ctx, mode=None):
         if mode is None:
-            contents = []
-            timess = {}
-            database = await aiosqlite.connect("db/db.sqlite")
-            cur = await database.execute(f"SELECT * FROM mail")
-            mails = await cur.fetchall()
-            for i in mails:
-                contents.append(i[1])
-                timess[i[1]] = i[2]
-            pages = len(contents)
-            cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
+            dictcommand = await self.read_email_from_db()
+            database = dictcommand["database"]
+            contents = dictcommand["contents"]
+            cur = dictcommand["cur"]
+            timess = dictcommand["timess"]
+            pages = dictcommand["pages"]
             check2 = await cur.fetchone()
             if check2 is None:
                 await database.execute(f"INSERT INTO uncheck VALUES (?,?)", (ctx.author.id,
@@ -340,6 +337,7 @@ class general(commands.Cog):
                                     description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
                                     colour=ctx.author.colour)
                 cur_page = int(check2[1])
+            # noinspection DuplicatedCode
             mal.add_field(name=f"{pages}중 {cur_page}번째 메일({timess[contents[cur_page - 1]]}작성)",
                           value=contents[cur_page - 1])
             message = await ctx.send(embed=mal)
@@ -350,7 +348,6 @@ class general(commands.Cog):
 
             def check(reaction, user):
                 return user == ctx.author and str(reaction.emoji) in ["◀️", "▶️"] and reaction.message.id == message.id
-                # This makes sure nobody except the command sender can interact with the "menu"
 
             while True:
                 try:
@@ -392,23 +389,18 @@ class general(commands.Cog):
                 except asyncio.TimeoutError:
                     break
         elif mode == "전체":
-            contents = []
-            timess = {}
-            database = await aiosqlite.connect("db/db.sqlite")
-            cur = await database.execute(f"SELECT * FROM mail")
-            mails = await cur.fetchall()
-            for i in mails:
-                contents.append(i[1])
-                timess[i[1]] = i[2]
-            pages = len(contents)
+            dictcommand = await self.read_email_from_db()
+            contents = dictcommand["contents"]
+            timess = dictcommand["timess"]
+            pages = dictcommand["pages"]
             mal = discord.Embed(title=f"📫하린봇 메일함",
                                 description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
                                 colour=ctx.author.colour)
             cur_page = 1
+            # noinspection DuplicatedCode
             mal.add_field(name=f"{pages}중 {cur_page}번째 메일({timess[contents[cur_page - 1]]}작성)",
                           value=contents[cur_page - 1])
             message = await ctx.send(embed=mal)
-            # getting the message object for editing and reacting
 
             await message.add_reaction("◀️")
             await message.add_reaction("▶️")
@@ -443,6 +435,19 @@ class general(commands.Cog):
                 except asyncio.TimeoutError:
                     break
 
+    @staticmethod
+    async def read_email_from_db():
+        contents = []
+        timess = {}
+        database = await aiosqlite.connect("db/db.sqlite")
+        cur = await database.execute('SELECT * FROM mail')
+        mails = await cur.fetchall()
+        for i in mails:
+            contents.append(i[1])
+            timess[i[1]] = i[2]
+        pages = len(contents)
+        return {"contents": contents, "timess": timess, "database": database, "cur": cur, "pages": pages}
+
 
 def setup(bot):
-    bot.add_cog(general(bot))
+    bot.add_cog(General(bot))
