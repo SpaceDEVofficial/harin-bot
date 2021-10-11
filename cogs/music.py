@@ -74,7 +74,7 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
             )
 
             if await cur.fetchone() is None:
-                cur = await database.execute(f"SELECT * FROM mail")
+                cur = await database.execute("SELECT * FROM mail")
                 mails = await cur.fetchall()
                 check = sum(1 for _ in mails)
                 mal = discord.Embed(
@@ -87,7 +87,7 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
             cur = await database.execute('SELECT * FROM mail')
             mails = await cur.fetchall()
             check = sum(1 for _ in mails)
-            cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
+            cur = await database.execute("SELECT * FROM uncheck WHERE user_id = %s", ctx.author.id)
             check2 = await cur.fetchone()
             if str(check) != str(check2[1]):
                 mal = discord.Embed(

@@ -69,8 +69,8 @@ class Owner(commands.Cog):
         try:
             for _ in mails:
                 check += 1
-        except Exception:
-            pass
+        except Exception as e:
+            print(e)
         await database.execute(
             'INSERT INTO mail(id,value) VALUES (?,?)', (check, va_lue)
         )

@@ -35,7 +35,7 @@ class General(commands.Cog):
             )
 
             if await cur.fetchone() is None:
-                cur = await database.execute(f"SELECT * FROM mail")
+                cur = await database.execute("SELECT * FROM mail")
                 mails = await cur.fetchall()
                 check = sum(1 for _ in mails)
                 mal = discord.Embed(
@@ -48,7 +48,7 @@ class General(commands.Cog):
             cur = await database.execute('SELECT * FROM mail')
             mails = await cur.fetchall()
             check = sum(1 for _ in mails)
-            cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
+            cur = await database.execute("SELECT * FROM uncheck WHERE user_id = %s", ctx.author.id)
             check2 = await cur.fetchone()
             if str(check) != str(check2[1]):
                 mal = discord.Embed(
@@ -69,13 +69,17 @@ class General(commands.Cog):
             on_option.append(self.option_dict["-HNoLv"] + " <:activ:896255701641474068>")
         channels = ctx.guild.text_channels
         for channel in channels:
-            if channel.topic is not None:
-                if str(channel.topic).find("-HOnNt") != -1:
-                    on_option.append(self.option_dict["-HOnNt"] + f"<#{channel.id}> <:activ:896255701641474068>")
+            if (
+                channel.topic is not None
+                and str(channel.topic).find("-HOnNt") != -1
+            ):
+                on_option.append(self.option_dict["-HOnNt"] + f"<#{channel.id}> <:activ:896255701641474068>")
         for channel in channels:
-            if channel.topic is not None:
-                if str(channel.topic).find("-HOnBtd") != -1:
-                    on_option.append(self.option_dict["-HOnBtd"] + f"<#{channel.id}> <:activ:896255701641474068>")
+            if (
+                channel.topic is not None
+                and str(channel.topic).find("-HOnBtd") != -1
+            ):
+                on_option.append(self.option_dict["-HOnBtd"] + f"<#{channel.id}> <:activ:896255701641474068>")
         database = await aiosqlite.connect("db/db.sqlite")
         cur = await database.execute("SELECT * FROM welcome WHERE guild = ?", (ctx.guild.id,))
         data = await cur.fetchone()
@@ -159,7 +163,7 @@ class General(commands.Cog):
                 return
             await msg.edit("저장중이에요!", components=[])
             try:
-                await database.execute(f"INSERT INTO {self.option_dict_db[value]}(guild,channel) VALUES (?,?)",
+                await database.execute("INSERT INTO {self.option_dict_db[value]}(guild,channel) VALUES (%s, %s)",
                                        (ctx.guild.id, int(message)))
                 await database.commit()
             except Exception as e:
@@ -186,13 +190,13 @@ class General(commands.Cog):
             # noinspection PyBroadException
             try:
                 await database.execute("DELETE FROM welcome WHERE guild = ?", (ctx.guild.id,))
-            except Exception:
-                pass
+            except Exception as e:
+                print(e)
             # noinspection PyBroadException
             try:
                 await database.execute("DELETE FROM invite_tracker WHERE guild = ?", (ctx.guild.id,))
-            except Exception:
-                pass
+            except Exception as e:
+                print(e)
             await database.commit()
             await msg.edit(content="초기화를 완료했어요!", components=[])
             await asyncio.sleep(3)

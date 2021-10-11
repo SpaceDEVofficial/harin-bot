@@ -114,14 +114,10 @@ class InviteTracker(commands.Cog):
         ).run()
 
     @commands.command(name="생일")
-    async def birthday(self,ctx, member: discord.Member = None):
+    async def birthday(self, ctx, member: discord.Member = None):
         database = self.bot.db
         await self.BirthdayManager.connect_to_database(database, ["birthdays"])
-        if member == None:
-            member = ctx.author
-        else:
-            member = member
-
+        member = ctx.author if member is None else member
         member_birthday = await self.BirthdayManager.get_birthday(member)
 
         if not member_birthday:
