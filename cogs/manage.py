@@ -1,12 +1,8 @@
-import io
-import asyncio
-from datetime import datetime
-
-from PycordPaginator import Paginator
-import aiosqlite
 import discord
-from discord.ext import commands
 import discordSuperUtils
+from PycordPaginator import Paginator
+from discord.ext import commands
+
 
 class manage(commands.Cog):
     def __init__(self, bot):
@@ -24,21 +20,18 @@ class manage(commands.Cog):
             ]
         )
 
-
-    async def make_infraction_embed(self,member_infractions, member)-> list:
+    async def make_infraction_embed(self, member_infractions, member) -> list:
         return discordSuperUtils.generate_embeds(
-                [
-                    f"**사유: **{await infraction.reason()}\n"
-                    f"**처리ID: **{infraction.infraction_id}\n"
-                    f"**처벌일자: **{await infraction.datetime()}"
-                    for infraction in member_infractions
-                ],
-                title=f"{member}의 처벌목록",
-                fields=25,
-                description=f"{member}의 처벌목록"
-            )
-
-
+            [
+                f"**사유: **{await infraction.reason()}\n"
+                f"**처리ID: **{infraction.infraction_id}\n"
+                f"**처벌일자: **{await infraction.datetime()}"
+                for infraction in member_infractions
+            ],
+            title=f"{member}의 처벌목록",
+            fields=25,
+            description=f"{member}의 처벌목록"
+        )
 
     @commands.command(name="뮤트")
     @commands.has_permissions(administrator=True)
@@ -59,7 +52,7 @@ class manage(commands.Cog):
 
     @commands.command(name="언뮤트")
     @commands.has_permissions(administrator=True)
-    async def unmute(self,ctx, member: discord.Member):
+    async def unmute(self, ctx, member: discord.Member):
         await self.MuteManager.connect_to_database(self.bot.db, ["mutes"])
         if await self.MuteManager.unmute(member):
             await ctx.send(f"{member.mention}님이 언뮤트되었어요.")
@@ -81,15 +74,15 @@ class manage(commands.Cog):
 
     @commands.command(name="언밴")
     @commands.has_permissions(administrator=True)
-    async def unban(self,ctx, user: discord.User):
+    async def unban(self, ctx, user: discord.User):
         await self.BanManager.connect_to_database(self.bot.db, ["bans"])
         if await self.BanManager.unban(user, guild=ctx.guild):
             await ctx.send(f"{user}님은 언밴되셨어요.")
         else:
             await ctx.send(f"{user}은 밴되어있지않아요.")
 
-    @commands.group(name="처벌",invoke_without_command=True)
-    async def infractions(self,ctx, member: discord.Member):
+    @commands.group(name="처벌", invoke_without_command=True)
+    async def infractions(self, ctx, member: discord.Member):
         await self.InfractionManager.connect_to_database(self.bot.db, ["infractions"])
         member_infractions = await self.InfractionManager.get_infractions(member)
         embeds = await self.make_infraction_embed(member_infractions, member)
@@ -104,7 +97,7 @@ class manage(commands.Cog):
 
     @infractions.command(name="추가")
     @commands.has_permissions(administrator=True)
-    async def add(self,ctx, member: discord.Member, reason: str = "No reason specified."):
+    async def add(self, ctx, member: discord.Member, reason: str = "No reason specified."):
         await self.InfractionManager.connect_to_database(self.bot.db, ["infractions"])
         infraction = await self.InfractionManager.warn(ctx, member, reason)
 
@@ -120,7 +113,7 @@ class manage(commands.Cog):
         await ctx.send(embed=embed)
 
     @infractions.command(name="조회")
-    async def get(self,ctx, member: discord.Member, infraction_id: str):
+    async def get(self, ctx, member: discord.Member, infraction_id: str):
         await self.InfractionManager.connect_to_database(self.bot.db, ["infractions"])
         infractions_found = await self.InfractionManager.get_infractions(
             member, infraction_id=infraction_id
@@ -147,10 +140,9 @@ class manage(commands.Cog):
 
         await ctx.send(embed=embed)
 
-
-    @infractions.command(name="제거",aliases=["삭제","취소"])
+    @infractions.command(name="제거", aliases=["삭제", "취소"])
     @commands.has_permissions(administrator=True)
-    async def remove(self,ctx, member: discord.Member, infraction_id: str):
+    async def remove(self, ctx, member: discord.Member, infraction_id: str):
         await self.InfractionManager.connect_to_database(self.bot.db, ["infractions"])
         infractions_found = await self.InfractionManager.get_infractions(
             member, infraction_id=infraction_id
@@ -182,10 +174,10 @@ class manage(commands.Cog):
 
     @commands.command(name="청소")
     @commands.has_permissions(administrator=True)
-    async def channel_purge(self,ctx,limit:int):
+    async def channel_purge(self, ctx, limit: int):
         if limit <= 99:
             await ctx.channel.purge(limit=limit)
-            await ctx.send(f"`{limit}`개의 메세지를 지웠어요.",delete_after=5)
+            await ctx.send(f"`{limit}`개의 메세지를 지웠어요.", delete_after=5)
         else:
             await ctx.reply(f"99개 이하의 수를 입력해주세요")
 
@@ -199,6 +191,7 @@ class manage(commands.Cog):
         )
         em.set_footer(text="이 공지는 하린봇과 무관한 서버별 공지기능입니다.")
         await channel.send(embed=em)
+
 
 def setup(bot):
     bot.add_cog(manage(bot))

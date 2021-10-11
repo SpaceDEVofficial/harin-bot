@@ -17,6 +17,7 @@ class Leveling(commands.Cog, discordSuperUtils.CogManager.Cog):
         # managers in different files, I recommend saving the managers as attributes on the bot object, instead of
         # importing them.
 
+    # noinspection DuplicatedCode
     async def cog_before_invoke(self, ctx: commands.Context):
         print(ctx.command)
         if ctx.command.name != '메일':
