@@ -4,7 +4,7 @@ from PycordPaginator import Paginator
 from discord.ext import commands
 
 
-class manage(commands.Cog):
+class Manage(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.InfractionManager = discordSuperUtils.InfractionManager(self.bot)
@@ -20,7 +20,8 @@ class manage(commands.Cog):
             ]
         )
 
-    async def make_infraction_embed(self, member_infractions, member) -> list:
+    @staticmethod
+    async def make_infraction_embed(member_infractions, member) -> list:
         return discordSuperUtils.generate_embeds(
             [
                 f"**사유: **{await infraction.reason()}\n"
@@ -101,16 +102,7 @@ class manage(commands.Cog):
         await self.InfractionManager.connect_to_database(self.bot.db, ["infractions"])
         infraction = await self.InfractionManager.warn(ctx, member, reason)
 
-        embed = discord.Embed(title=f"{member}님이 경고를 받으셨어요.", color=0x00FF00)
-
-        embed.add_field(name="사유", value=await infraction.reason(), inline=False)
-        embed.add_field(name="처리ID", value=infraction.infraction_id, inline=False)
-        embed.add_field(
-            name="처리 일시", value=str(await infraction.datetime()), inline=False
-        )
-        # Incase you don't like the Date of Infraction format you can change it using datetime.strftime
-
-        await ctx.send(embed=embed)
+        await self.make_infraction_embed_and_send(ctx=ctx, infraction=infraction, member=member)
 
     @infractions.command(name="조회")
     async def get(self, ctx, member: discord.Member, infraction_id: str):
@@ -127,18 +119,7 @@ class manage(commands.Cog):
 
         infraction = infractions_found[0]
 
-        embed = discord.Embed(
-            title=f"{member}님의 기록!", color=0x00FF00
-        )
-
-        embed.add_field(name="사유", value=await infraction.reason(), inline=False)
-        embed.add_field(name="처리ID", value=infraction.infraction_id, inline=False)
-        embed.add_field(
-            name="처리 일시", value=str(await infraction.datetime()), inline=False
-        )
-        # Incase you don't like the Date of Infraction format you can change it using datetime.strftime
-
-        await ctx.send(embed=embed)
+        await self.make_infraction_embed_and_send(ctx, infraction, member)
 
     @infractions.command(name="제거", aliases=["삭제", "취소"])
     @commands.has_permissions(administrator=True)
@@ -179,7 +160,7 @@ class manage(commands.Cog):
             await ctx.channel.purge(limit=limit)
             await ctx.send(f"`{limit}`개의 메세지를 지웠어요.", delete_after=5)
         else:
-            await ctx.reply(f"99개 이하의 수를 입력해주세요")
+            await ctx.reply('99개 이하의 수를 입력해주세요')
 
     @commands.command(name="서버공지")
     @commands.has_permissions(administrator=True)
@@ -192,6 +173,19 @@ class manage(commands.Cog):
         em.set_footer(text="이 공지는 하린봇과 무관한 서버별 공지기능입니다.")
         await channel.send(embed=em)
 
+    @staticmethod
+    async def make_infraction_embed_and_send(ctx, infraction, member):
+        embed = discord.Embed(title=f"{member}님이 경고를 받으셨어요.", color=0x00FF00)
+
+        embed.add_field(name="사유", value=await infraction.reason(), inline=False)
+        embed.add_field(name="처리ID", value=infraction.infraction_id, inline=False)
+        embed.add_field(
+            name="처리 일시", value=str(await infraction.datetime()), inline=False
+        )
+        # Incase you don't like the Date of Infraction format you can change it using datetime.strftime
+
+        await ctx.send(embed=embed)
+
 
 def setup(bot):
-    bot.add_cog(manage(bot))
+    bot.add_cog(Manage(bot))
