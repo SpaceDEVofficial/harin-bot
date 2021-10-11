@@ -30,33 +30,36 @@ class general(commands.Cog):
         print(ctx.command)
         if ctx.command.name != '메일':
             database = await aiosqlite.connect("db/db.sqlite")
-            cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
-            if await cur.fetchone() == None:
+            cur = await database.execute(
+                'SELECT * FROM uncheck WHERE user_id = ?', (ctx.author.id,)
+            )
+
+            if await cur.fetchone() is None:
                 cur = await database.execute(f"SELECT * FROM mail")
                 mails = await cur.fetchall()
-                check = 0
-                for j in mails:
-                    check += 1
-                mal = discord.Embed(title=f"📫하린봇 메일함 | {str(check)}개 수신됨",
-                                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
-                                    colour=ctx.author.colour)
+                check = sum(1 for _ in mails)
+                mal = discord.Embed(
+                    title=f'📫하린봇 메일함 | {check}개 수신됨',
+                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                    colour=ctx.author.colour,
+                )
+
                 return await ctx.send(embed=mal)
-            cur = await database.execute(f"SELECT * FROM mail")
+            cur = await database.execute('SELECT * FROM mail')
             mails = await cur.fetchall()
-            check = 0
-            for j in mails:
-                check += 1
+            check = sum(1 for _ in mails)
             cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
             CHECK = await cur.fetchone()
-            if str(check) == str(CHECK[1]):
-                pass
-            else:
-                mal = discord.Embed(title=f"📫하린봇 메일함 | {str(int(check) - int(CHECK[1]))}개 수신됨",
-                                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
-                                    colour=ctx.author.colour)
+            if str(check) != str(CHECK[1]):
+                mal = discord.Embed(
+                    title=f'📫하린봇 메일함 | {int(check) - int(CHECK[1])}개 수신됨',
+                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                    colour=ctx.author.colour,
+                )
+
                 await ctx.send(embed=mal)
 
-    async def check_option(self, ctx, db):
+    async def check_option(self, ctx):
         on_option = []
         topics = str(ctx.channel.topic).split(" ")
         # values = ["-HNoAts", "-HNoLv"]
@@ -82,14 +85,14 @@ class general(commands.Cog):
         data = await cur.fetchone()
         if data is not None:
             on_option.append(self.option_dict["ivt"] + " <:activ:896255701641474068>")
-        if on_option == []:
+        if not on_option:
             return "적용된 옵션이 없어요"
         return "\n".join(on_option)
 
     @commands.command(name="옵션", aliases=["설정"])
     async def option(self, ctx):
         database = self.bot.db
-        check_option = await self.check_option(ctx=ctx, db=database)
+        check_option = await self.check_option(ctx=ctx)
         """
         SelectOption(label="안티스팸 무시",
                                                             description="이 채널에 메세지 도배나 멘션 도배를 무시하는 모드입니다.",
@@ -131,30 +134,24 @@ class general(commands.Cog):
         except asyncio.TimeoutError:
             await msg.edit("시간이 초과되었어요!", components=[])
             return
-        if value == "wlc" or value == "ivt":
+        if value in ["wlc", "ivt"]:
             database = await aiosqlite.connect("db/db.sqlite")
             if value == "wlc":
                 cur = await database.execute("SELECT * FROM welcome WHERE guild = ?", (ctx.guild.id,))
-                data = await cur.fetchone()
-                print(data)
-                if data is not None:
-                    await msg.edit(f"이미 설정되어있어요!\n설정되어있는 채널 - <#{data[1]}>", components=[])
-                    return
             else:
                 cur = await database.execute("SELECT * FROM invite_tracker WHERE guild = ?", (ctx.guild.id,))
-                data = await cur.fetchone()
-                print(data)
-                if data is not None:
-                    await msg.edit(f"이미 설정되어있어요!\n설정되어있는 채널 - <#{data[1]}>", components=[])
-                    return
+            data = await cur.fetchone()
+            print(data)
+            if data is not None:
+                await msg.edit(f"이미 설정되어있어요!\n설정되어있는 채널 - <#{data[1]}>", components=[])
+                return
             await msg.delete()
             msg = await ctx.reply(
                 f"{self.option_dict[value]}를 선택하셨어요!\n추가 설정을 위해 아래의 질문에 맞는 값을 보내주세요!\n메세지가 보내질 __채널 ID__를 보내주세요.(ex| 123456789)",
                 components=[])
             try:
                 message = await self.bot.wait_for("message",
-                                                  check=lambda
-                                                      i: i.author.id == ctx.author.id and i.channel.id == ctx.channel.id,
+                                                  check=lambda i: i.author.id == ctx.author.id and i.channel.id == ctx.channel.id,
                                                   timeout=60)
                 message = message.content
             except asyncio.TimeoutError:
@@ -171,7 +168,7 @@ class general(commands.Cog):
                 return
             await msg.edit("저장을 완료했어요!\n채널 - <#{ch}>".format(ch=message), components=[])
         if value == "reset":
-            if not ctx.channel.topic is None:
+            if ctx.channel.topic is not None:
                 topics = str(ctx.channel.topic).split(" ")
                 values = ["-HNoLv", "-HOnNt"]
                 for x in values:
@@ -181,14 +178,11 @@ class general(commands.Cog):
                         pass
                 # print(' '.join(topics))
                 res_topic = ' '.join(topics)
+                channel = ctx.channel
                 if res_topic == '':
-                    channel = ctx.channel
                     await channel.edit(topic="")
                 else:
-                    channel = ctx.channel
                     await channel.edit(topic=str(res_topic))
-            else:
-                pass
             # noinspection PyBroadException
             try:
                 await database.execute("DELETE FROM welcome WHERE guild = ?", (ctx.guild.id,))
@@ -206,15 +200,12 @@ class general(commands.Cog):
 
         if value == "cancel":
             await msg.delete()
-        if value == "-HNoLv" or value == "-HNoAts":
+        if value in ["-HNoLv", "-HNoAts"]:
             try:
                 print(value)
                 if str(ctx.channel.topic).find(value) != -1:
                     return await msg.edit("이미 설정되어있어요.", components=[])
-                if ctx.channel.topic is None:
-                    topic = value
-                else:
-                    topic = ctx.channel.topic + " " + value
+                topic = value if ctx.channel.topic is None else ctx.channel.topic + " " + value
                 await ctx.channel.edit(topic=topic)
                 await msg.edit("성공적으로 적용되었어요.", components=[])
             except discord.Forbidden:
@@ -223,43 +214,40 @@ class general(commands.Cog):
             channels = ctx.guild.text_channels
             count = []
             for channel in channels:
-                if channel.topic is not None:
-                    if str(channel.topic).find("-HOnNt") != -1:
-                        count.append(channel.id)
-                        break
+                if (
+                    channel.topic is not None
+                    and str(channel.topic).find("-HOnNt") != -1
+                ):
+                    count.append(channel.id)
+                    break
             if len(count) == 1:
                 await msg.edit(f"이미 설정되어있는 채널이 있어요! 채널 - <#{count[0]}>", components=[])
                 return
             else:
-                if ctx.channel.topic is None:
-                    topic = value
-                else:
-                    topic = ctx.channel.topic + " " + value
+                topic = value if ctx.channel.topic is None else ctx.channel.topic + " " + value
                 await ctx.channel.edit(topic=topic)
                 await msg.edit("성공적으로 적용되었어요.", components=[])
         if value == "-HOnBtd":
             channels = ctx.guild.text_channels
             count = []
             for channel in channels:
-                if channel.topic is not None:
-                    if str(channel.topic).find("-HOnBtd") != -1:
-                        count.append(channel.id)
-                        break
+                if (
+                    channel.topic is not None
+                    and str(channel.topic).find("-HOnBtd") != -1
+                ):
+                    count.append(channel.id)
+                    break
             if len(count) == 1:
                 await msg.edit(f"이미 설정되어있는 채널이 있어요! 채널 - <#{count[0]}>", components=[])
                 return
             else:
-                if ctx.channel.topic is None:
-                    topic = value
-                else:
-                    topic = ctx.channel.topic + " " + value
+                topic = value if ctx.channel.topic is None else ctx.channel.topic + " " + value
                 await ctx.channel.edit(topic=topic)
                 await msg.edit("성공적으로 적용되었어요.", components=[])
-        # print("Before - '{bf}'\nAfter - '{af}'".format(bf=ctx.channel.topic,af=ctx.channel.topic + " " + value))
 
     @commands.command(name="프사")
     async def avatar(self, ctx, member: discord.Member = None):
-        member_obj = member if member else ctx.author
+        member_obj = member or ctx.author
         em = discord.Embed(
             title=f"{member}님의 프로필 사진!",
             description=f"[링크]({member_obj.avatar_url})",
@@ -346,11 +334,7 @@ class general(commands.Cog):
             value=f"{platform.platform()}",
             inline=False
         )
-        embed.add_field(
-            name="Prefix:",
-            value=f"하린아",
-            inline=True
-        )
+        embed.add_field(name="Prefix:", value='하린아', inline=True)
         embed.add_field(
             name="Ping:",
             value=str(round(self.bot.latency * 1000)) + "ms",
