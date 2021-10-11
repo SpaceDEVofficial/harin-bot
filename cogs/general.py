@@ -14,6 +14,10 @@ class general(commands.Cog):
     async def hellothisisverification(self,ctx):
         await ctx.send("gawi#9537(281566165699002379)")
 
+    @commands.command(name="개발자")
+    async def verification(self, ctx):
+        await ctx.send("gawi#9537(281566165699002379)")
+
     @commands.command(name="도움",aliases=["도움말","help"])
     async def help(self,ctx):
         global embeds

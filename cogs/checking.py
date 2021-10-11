@@ -101,12 +101,17 @@ class invitetracker(commands.Cog):
                     title=f"{values} | 출석체크 리더보드",
                     description=f"누가 가장먼저 출석체크를 했을까요?```fix\n{leaderboard}```"
                 )
+                dates = [i[2] for i in res]
+                new_dates = []
+                for i in dates:
+                    if i not in new_dates:
+                        new_dates.append(i)
                 await interaction.edit_origin(embed=em,
             components=[
                 self.bot.components_manager.add_callback(
                     Select(
                         options=[
-                            SelectOption(label=i[2], value=i[2]) for i in res
+                            SelectOption(label=i[2], value=i[2]) for i in new_dates
                         ],
                     ),
                     callback,
@@ -115,13 +120,19 @@ class invitetracker(commands.Cog):
         db = await aiosqlite.connect("db/db.sqlite")
         cur = await db.execute("SELECT * FROM chulcheck")
         res = await cur.fetchall()
+        dates = [i[2] for i in res]
+        new_dates = []
+        for i in dates:
+            if i not in new_dates:
+                new_dates.append(i)
+        print(new_dates)
         await ctx.reply(
             "조회할 리더보드 일정을 선택해주세요.",
             components=[
                 self.bot.components_manager.add_callback(
                     Select(
                         options=[
-                            SelectOption(label=i[2], value=i[2]) for i in res
+                            SelectOption(label=i, value=i) for i in new_dates
                         ],
                     ),
                     callback,
