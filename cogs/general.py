@@ -1,21 +1,22 @@
-import io
 import asyncio
 from PycordPaginator import Paginator
 import aiosqlite
 import discord
 from discord.ext import commands
 import discordSuperUtils
+
+
 class general(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.ImageManager = discordSuperUtils.ImageManager()
 
     @commands.command(name="hellothisisverification")
-    async def hellothisisverification(self,ctx):
+    async def hellothisisverification(self, ctx):
         await ctx.send("gawi#9537(281566165699002379)")
 
-    @commands.command(name="도움",aliases=["도움말","help"])
-    async def help(self,ctx):
+    @commands.command(name="도움", aliases=["도움말", "help"])
+    async def help(self, ctx):
         main = discord.Embed(
             title="메인페이지",
             description="""
@@ -35,8 +36,9 @@ class general(commands.Cog):
             colour=discord.Colour.random()
         )
         main.set_thumbnail(url=self.bot.user.avatar_url)
-        main.set_image(url="https://media.discordapp.net/attachments/889514827905630290/896359450544308244/37cae031dc5a6c40.png")
-        main.set_footer(text="1 / 5페이지",icon_url=ctx.author.avatar_url)
+        main.set_image(
+            url="https://media.discordapp.net/attachments/889514827905630290/896359450544308244/37cae031dc5a6c40.png")
+        main.set_footer(text="1 / 5페이지", icon_url=ctx.author.avatar_url)
 
         manage = discord.Embed(
             title="서버 관리 ⚖",
@@ -77,7 +79,7 @@ class general(commands.Cog):
         manage.add_field(name="하린아 서버공지 #채널 내용",
                          value="```\n지정한 채널에 입력한 내용의 공지사항글을 올려요.\n```",
                          inline=False)
-        manage.set_footer(text="2 / 5페이지",icon_url=ctx.author.avatar_url)
+        manage.set_footer(text="2 / 5페이지", icon_url=ctx.author.avatar_url)
 
         util = discord.Embed(
             title="도구 🧰",
@@ -126,7 +128,7 @@ class general(commands.Cog):
             value="```\n전체 옵션을 사용하지않으면 수신된 메일을 보여주고 사용하면 모든 메일을 볼 수 있어요!\n```",
             inline=False
         )
-        util.set_footer(text="3 / 5페이지",icon_url=ctx.author.avatar_url)
+        util.set_footer(text="3 / 5페이지", icon_url=ctx.author.avatar_url)
 
         music = discord.Embed(
             title="뮤직 🎶",
@@ -225,7 +227,7 @@ class general(commands.Cog):
             value="```\n현재 접속한 음성채널에서 노래를 멈추고 나가요.\n```",
             inline=False
         )
-        music.set_footer(text="4 / 5페이지",icon_url=ctx.author.avatar_url)
+        music.set_footer(text="4 / 5페이지", icon_url=ctx.author.avatar_url)
 
         birthday = discord.Embed(
             title="생일 🎉",
@@ -249,7 +251,7 @@ class general(commands.Cog):
             value="```\n현재길드에 등록된 멤버들의 생일을 보여줘요.\n```",
             inline=False
         )
-        birthday.set_footer(text="5 / 5페이지",icon_url=ctx.author.avatar_url)
+        birthday.set_footer(text="5 / 5페이지", icon_url=ctx.author.avatar_url)
 
         """
         template = discord.Embed(
@@ -285,12 +287,12 @@ class general(commands.Cog):
         template.set_footer(text="6 / 6페이지",icon_url=ctx.author.avatar_url)
         """
 
-        embeds = [main,manage,util,music,birthday]
+        embeds = [main, manage, util, music, birthday]
         desc = {
             "메인 페이지": "목차가 있는 메인페이지",
             "서버 관리": "서버 관리 명령어가 있는 페이지.",
-            "도구":"간편히 사용할 수 있는 명령어가 있는 페이지.",
-            "뮤직":"노래 명령어가 있는 페이지.",
+            "도구": "간편히 사용할 수 있는 명령어가 있는 페이지.",
+            "뮤직": "노래 명령어가 있는 페이지.",
             "생일": "생일 명령어가 있는 페이지."
         }
         e = Paginator(
@@ -357,7 +359,7 @@ class general(commands.Cog):
                     # example
 
                     if str(reaction.emoji) == "▶️" and cur_page != pages:
-                        if CHECK == None:
+                        if CHECK is not None:
                             cur_page += 1
                             mal = discord.Embed(title=f"📫하린봇 메일함 | {str(pages)}개 수신됨",
                                                 description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
@@ -373,7 +375,7 @@ class general(commands.Cog):
                         await message.edit(embed=mal)
 
                     elif str(reaction.emoji) == "◀️" and cur_page > 1:
-                        if CHECK == None:
+                        if CHECK is not None:
                             cur_page -= 1
                             mal = discord.Embed(title=f"📫하린봇 메일함 | {str(pages)}개 수신됨",
                                                 description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
@@ -440,6 +442,7 @@ class general(commands.Cog):
                         await message.edit(embed=mal)
                 except asyncio.TimeoutError:
                     break
+
 
 def setup(bot):
     bot.add_cog(general(bot))
