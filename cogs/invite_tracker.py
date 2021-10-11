@@ -1,12 +1,9 @@
-import io
-import asyncio
-import urllib.request
-
 import aiosqlite
 import discord
-from PIL import Image
-from discord.ext import commands
 import discordSuperUtils
+from discord.ext import commands
+
+
 class invitetracker(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -18,7 +15,7 @@ class invitetracker(commands.Cog):
         if ctx.command.name != '메일':
             database = await aiosqlite.connect("db/db.sqlite")
             cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
-            if await cur.fetchone() == None:
+            if await cur.fetchone() is None:
                 cur = await database.execute(f"SELECT * FROM mail")
                 mails = await cur.fetchall()
                 check = 0
@@ -44,19 +41,19 @@ class invitetracker(commands.Cog):
                 await ctx.send(embed=mal)
 
     @commands.Cog.listener("on_member_join")
-    async def invite_tracker(self,member):
+    async def invite_tracker(self, member):
         database_one = await aiosqlite.connect("db/db.sqlite")
         database = discordSuperUtils.DatabaseManager.connect(database_one)
         await self.InviteTracker.connect_to_database(database, ["invites"])
-        cur = await database_one.execute("SELECT * FROM invite_tracker WHERE guild = ?",(member.guild.id,))
+        cur = await database_one.execute("SELECT * FROM invite_tracker WHERE guild = ?", (member.guild.id,))
         data = await cur.fetchone()
-        if data != None:
+        if data is not None:
             invite = await self.InviteTracker.get_invite(member)
             inviter = await self.InviteTracker.fetch_inviter(invite)
             await self.InviteTracker.register_invite(invite, member, inviter)
 
             channel = self.bot.get_channel(data[1])
-            if inviter == None:
+            if inviter is None:
                 await channel.send(
                     f"{member.mention}님은 누군가의 초대로 접속하셨어요. 코드 - {invite.code}"
                 )
@@ -66,7 +63,7 @@ class invitetracker(commands.Cog):
             )
 
     @commands.command(name="초대정보")
-    async def info(self,ctx, member: discord.Member = None):
+    async def info(self, ctx, member: discord.Member = None):
         member = ctx.author if not member else member
         invited_members = await self.InviteTracker.get_user_info(member).get_invited_users()
 
@@ -74,6 +71,7 @@ class invitetracker(commands.Cog):
             f"{member.mention}님이 초대한 멤버들({len(invited_members)}명): "
             + ", ".join(str(x) for x in invited_members)
         )
+
 
 def setup(bot):
     bot.add_cog(invitetracker(bot))
