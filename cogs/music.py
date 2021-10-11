@@ -86,10 +86,10 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
             mails = await cur.fetchall()
             check = sum(1 for _ in mails)
             cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
-            CHECK = await cur.fetchone()
-            if str(check) != str(CHECK[1]):
+            check2 = await cur.fetchone()
+            if str(check) != str(check2[1]):
                 mal = discord.Embed(
-                    title=f'📫하린봇 메일함 | {int(check) - int(CHECK[1])}개 수신됨',
+                    title=f'📫하린봇 메일함 | {int(check) - int(check2[1])}개 수신됨',
                     description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
                     colour=ctx.author.colour,
                 )
@@ -134,7 +134,6 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
             discordSuperUtils.UserNotConnected: "명령자님이 아직 음성채널에 접속중이지 않아요!",
             discordSuperUtils.InvalidSkipIndex: "스킵인덱스값은 사용할 수가 없어요!",
         }
-
 
         for error_type, response in errors.items():
             if isinstance(error, error_type):
@@ -365,7 +364,6 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
     @commands.command(name="스킵")
     async def skip(self, ctx, index: int = None):
         if queue := (await self.MusicManager.get_queue(ctx)):
-            voter = ctx.author
             requester = (await self.MusicManager.now_playing(ctx)).requester
 
             # Checking if the song is autoplayed
@@ -514,11 +512,12 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
             await ctx.send("You are not connected to any voice channel.")
             raise commands.CommandError()
 
-        if ctx.voice_client:
-            if ctx.voice_client.channel != ctx.author.voice.channel:
-                await ctx.send("Bot is already in a voice channel.")
-                raise commands.CommandError()
-        # Or raise a custom error
+        if (
+                ctx.voice_client
+                and ctx.voice_client.channel != ctx.author.voice.channel
+        ):
+            await ctx.send("Bot is already in a voice channel.")
+            raise commands.CommandError()
 
 
 def setup(bot):
