@@ -52,10 +52,10 @@ class InviteTracker(commands.Cog):
                 )
 
                 return await ctx.send(embed=mal)
-            cur = await database.execute(f"SELECT * FROM mail")
+            cur = await database.execute("SELECT * FROM mail")
             mails = await cur.fetchall()
             check = sum(1 for _ in mails)
-            cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
+            cur = await database.execute("SELECT * FROM uncheck WHERE user_id = ?", ctx.author.id)
             check2 = await cur.fetchone()
             if str(check) != str(check2[1]):
                 mal = discord.Embed(
