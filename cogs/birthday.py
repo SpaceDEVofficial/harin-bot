@@ -1,14 +1,12 @@
-import io
-import asyncio
-import urllib.request
 from datetime import datetime, timezone
 
 import aiosqlite
 import discord
-import pytz
-from PIL import Image
-from discord.ext import commands
 import discordSuperUtils
+import pytz
+from discord.ext import commands
+
+
 class invitetracker(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
