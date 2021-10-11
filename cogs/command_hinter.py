@@ -6,11 +6,10 @@ from discord.ext import commands
 
 
 def random_chat(suggest):
-    chatlist = ["혹시 `하린아 {hint}`를 사용하시려고 한건가요?",
-                "그 명령어는 없는데 `하린아 {hint}`로 사용해보세요!",
-                "한번 `하린아 {hint}`로 명령해보세요!"]
-    res = random.choice(chatlist)
-    return res.format(hint=suggest)
+    chatlist = [f"혹시 `하린아 {suggest}`를 사용하시려고 한건가요?",
+                f"그 명령어는 없는데 `하린아 {suggest}`로 사용해보세요!",
+                f"한번 `하린아 {suggest}`로 명령해보세요!"]
+    return random.choice(chatlist)
 
 
 class MyCommandGenerator(discordSuperUtils.CommandResponseGenerator):

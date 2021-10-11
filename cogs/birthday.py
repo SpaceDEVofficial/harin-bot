@@ -33,6 +33,7 @@ class InviteTracker(commands.Cog):
         self.ImageManager = discordSuperUtils.ImageManager()
         self.BirthdayManager = discordSuperUtils.BirthdayManager(self.bot)
 
+    # noinspection DuplicatedCode
     async def cog_before_invoke(self, ctx: commands.Context):
         print(ctx.command)
         if ctx.command.name != '메일':
