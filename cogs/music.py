@@ -67,30 +67,33 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
         print(ctx.command)
         if ctx.command.name != '메일':
             database = await aiosqlite.connect("db/db.sqlite")
-            cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
+            cur = await database.execute(
+                'SELECT * FROM uncheck WHERE user_id = ?', (ctx.author.id,)
+            )
+
             if await cur.fetchone() is None:
                 cur = await database.execute(f"SELECT * FROM mail")
                 mails = await cur.fetchall()
-                check = 0
-                for _j in mails:
-                    check += 1
-                mal = discord.Embed(title=f"📫하린봇 메일함 | {str(check)}개 수신됨",
-                                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
-                                    colour=ctx.author.colour)
+                check = sum(1 for _ in mails)
+                mal = discord.Embed(
+                    title=f'📫하린봇 메일함 | {check}개 수신됨',
+                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                    colour=ctx.author.colour,
+                )
+
                 return await ctx.send(embed=mal)
-            cur = await database.execute(f"SELECT * FROM mail")
+            cur = await database.execute('SELECT * FROM mail')
             mails = await cur.fetchall()
-            check = 0
-            for _j in mails:
-                check += 1
+            check = sum(1 for _ in mails)
             cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
             CHECK = await cur.fetchone()
-            if str(check) == str(CHECK[1]):
-                pass
-            else:
-                mal = discord.Embed(title=f"📫하린봇 메일함 | {str(int(check) - int(CHECK[1]))}개 수신됨",
-                                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
-                                    colour=ctx.author.colour)
+            if str(check) != str(CHECK[1]):
+                mal = discord.Embed(
+                    title=f'📫하린봇 메일함 | {int(check) - int(CHECK[1])}개 수신됨',
+                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                    colour=ctx.author.colour,
+                )
+
                 await ctx.send(embed=mal)
 
     # Play function
@@ -122,7 +125,7 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
     async def on_music_error(self, ctx, error):
         errors = {
             discordSuperUtils.NotPlaying: "지금은 노래를 재생중이지 않아요..",
-            discordSuperUtils.NotConnected: f"제가 아직 음성채널에 접속중이지 않아요!",
+            discordSuperUtils.NotConnected: '제가 아직 음성채널에 접속중이지 않아요!',
             discordSuperUtils.NotPaused: "노래가 아직 멈추지않았어요!",
             discordSuperUtils.QueueEmpty: "큐가 비어있어요!",
             discordSuperUtils.AlreadyConnected: "이미 음성채널에 접속되어있어요!",
@@ -131,6 +134,7 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
             discordSuperUtils.UserNotConnected: "명령자님이 아직 음성채널에 접속중이지 않아요!",
             discordSuperUtils.InvalidSkipIndex: "스킵인덱스값은 사용할 수가 없어요!",
         }
+
 
         for error_type, response in errors.items():
             if isinstance(error, error_type):
@@ -481,9 +485,9 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
 
         if is_autoplay is not None:
             if is_autoplay:
-                await ctx.send(f"자동재생이 황성화되었어요.")
+                await ctx.send('자동재생이 활성화되었어요.')
             else:
-                await ctx.send(f"자동재생이 비황성화되었어요.")
+                await ctx.send('자동재생이 비활성화되었어요.')
 
     # Shuffle command
     @commands.command(name="셔플")
@@ -492,9 +496,9 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
 
         if is_shuffle is not None:
             if is_shuffle:
-                await ctx.send(f"셔플이 황성화되었어요.")
+                await ctx.send('셔플이 활성화되었어요.')
             else:
-                await ctx.send(f"셔플 비황성화되었어요.")
+                await ctx.send('셔플이 비활성화되었어요.')
 
     # Previous/Rewind command
     @commands.command(name="이전곡")
