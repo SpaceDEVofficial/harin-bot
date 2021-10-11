@@ -245,6 +245,11 @@ class general(commands.Cog):
             inline=False
         )
         birthday.add_field(
+            name="하린아 생일 (@user)",
+            value="```\n자신 혹은 지정한 유저의 생일을 조회해요.\n```",
+            inline=False
+        )
+        birthday.add_field(
             name="하린아 생일목록",
             value="```\n현재길드에 등록된 멤버들의 생일을 보여줘요.\n```",
             inline=False

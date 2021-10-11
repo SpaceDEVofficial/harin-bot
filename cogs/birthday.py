@@ -109,11 +109,14 @@ class invitetracker(commands.Cog):
             ),
         ).run()
 
-    @commands.command(name="내생일")
+    @commands.command(name="생일")
     async def birthday(self,ctx, member: discord.Member = None):
         database = self.bot.db
         await self.BirthdayManager.connect_to_database(database, ["birthdays"])
-        member = member or ctx.author
+        if member == None:
+            member = ctx.author
+        else:
+            member = member
 
         member_birthday = await self.BirthdayManager.get_birthday(member)
 
@@ -150,7 +153,7 @@ class invitetracker(commands.Cog):
 
         birthday_partial = await birthday_member.delete()
 
-        embed = discord.Embed(title=f"{ctx.author}님의 생을 삭제했어요.", color=0x00FF00)
+        embed = discord.Embed(title=f"{ctx.author}님의 생일을 삭제했어요.", color=0x00FF00)
 
         embed.add_field(
             name="출생일", value=str(birthday_partial.birthday_date), inline=False

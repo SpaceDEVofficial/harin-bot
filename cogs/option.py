@@ -72,10 +72,10 @@ class general(commands.Cog):
             if channel.topic is not None:
                 if str(channel.topic).find("-HOnNt") != -1:
                     on_option.append(self.option_dict["-HOnNt"] + f"<#{channel.id}> <:activ:896255701641474068>")
-                    break
+        for channel in channels:
+            if channel.topic is not None:
                 if str(channel.topic).find("-HOnBtd") != -1:
                     on_option.append(self.option_dict["-HOnBtd"] + f"<#{channel.id}> <:activ:896255701641474068>")
-                    break
         database = await aiosqlite.connect("db/db.sqlite")
         cur = await database.execute("SELECT * FROM welcome WHERE guild = ?", (ctx.guild.id,))
         data = await cur.fetchone()
