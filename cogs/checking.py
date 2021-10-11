@@ -81,11 +81,12 @@ class InviteTracker(commands.Cog):
         await ctx.send(embed=em)
 
     @chulcheck.command(name="리더보드")
-    async def chulcheck_leaderboard(self, ctx):
-        # noinspection PyShadowingNames
+    async def chulcheck_leaderboard(self,ctx):
+        async def btn_callback(interaction: Interaction):
+            if interaction.custom_id == "close":
+                await interaction.message.delete()
         async def callback(interaction: Interaction):
             values = interaction.values[0]
-            print(values)
             if interaction.user.id == ctx.author.id:
                 cur = await db.execute("SELECT * FROM chulcheck WHERE stand = ? ORDER BY dates", values)
                 res = await cur.fetchall()
@@ -137,6 +138,11 @@ class InviteTracker(commands.Cog):
                         ],
                     ),
                     callback,
+                ),
+                self.bot.components_manager.add_callback(
+                    Button(label="메세지 닫기",style=4,custom_id="close",emoji="❎"
+                    ),
+                    btn_callback,
                 )
             ]
         )
