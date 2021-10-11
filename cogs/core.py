@@ -1,17 +1,19 @@
 import random
 
 import discord
+from discord import errors
 from discord.ext import commands
 
 
-class core(commands.Cog):
+class Core(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
     @commands.Cog.listener()
-    async def on_guild_join(self,guild):
-        await self.bot.change_presence(status=discord.Status.online, activity=discord.Activity(name="하린아 도움 | 서버: {}".format(len(self.bot.guilds)),
-                                                                                               type=discord.ActivityType.playing))
+    async def on_guild_join(self, guild):
+        await self.bot.change_presence(status=discord.Status.online,
+                                       activity=discord.Activity(name="하린아 도움 | 서버: {}".format(len(self.bot.guilds)),
+                                                                 type=discord.ActivityType.playing))
         if guild.id == 653083797763522580 or guild.id == 786470326732587008:
             return
         em = discord.Embed(
@@ -29,7 +31,8 @@ class core(commands.Cog):
             url="https://media.discordapp.net/attachments/889514827905630290/896359450544308244/37cae031dc5a6c40.png")
         try:
             await guild.owner.send(embed=em)
-        except:
+        except errors.HTTPException as errors.Forbidden:  # errors.Forbidden when does not have permission
+            # except error as error mean except (error, error) <- does not working in python 3.10
             ch = self.bot.get_channel((random.choice(guild.channels)).id)
             await ch.send(embed=em)
         em = discord.Embed(
@@ -49,4 +52,4 @@ class core(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(core(bot))
+    bot.add_cog(Core(bot))
