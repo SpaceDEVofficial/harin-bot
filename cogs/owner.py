@@ -5,7 +5,7 @@ import discord
 from discord.ext import commands
 
 
-class owner(commands.Cog):
+class Owner(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
@@ -30,13 +30,15 @@ class owner(commands.Cog):
         for guild in guilds:
             channels = guild.text_channels
             for channel in channels:
-                if guild.id == 653083797763522580 or guild.id == 786470326732587008:
+                if guild.id in [653083797763522580, 786470326732587008]:
                     break
-                if channel.topic is not None:
-                    if str(channel.topic).find("-HOnNt") != -1:
-                        ok.append(channel.id)
-                        ok_guild.append(guild.id)
-                        break
+                if (
+                    channel.topic is not None
+                    and str(channel.topic).find("-HOnNt") != -1
+                ):
+                    ok.append(channel.id)
+                    ok_guild.append(guild.id)
+                    break
 
         for guild in guilds:
             channels = guild.text_channels
@@ -53,27 +55,29 @@ class owner(commands.Cog):
                 success += 1
             except discord.Forbidden:
                 failed += 1
-                pass
         await msg.edit("발송완료!\n성공: `{ok}`\n실패: `{no}`".format(ok=success, no=failed))
 
     @commands.command(name="메일작성")
     @commands.is_owner()
     async def mail(self, ctx, *, va_lue):
         database = await aiosqlite.connect("db/db.sqlite")
-        cur = await database.execute(f"SELECT * FROM mail")
+        cur = await database.execute('SELECT * FROM mail')
         mails = await cur.fetchall()
         print(mails)
         check = 1
         # noinspection PyBroadException
         try:
-            for _j in mails:
+            for _ in mails:
                 check += 1
         except Exception:
             pass
-        await database.execute(f"INSERT INTO mail(id,value) VALUES (?,?)", (check, va_lue))
+        await database.execute(
+            'INSERT INTO mail(id,value) VALUES (?,?)', (check, va_lue)
+        )
+
         await database.commit()
         await ctx.send('성공적으로 메일을 발송하였습니다.')
 
 
 def setup(bot):
-    bot.add_cog(owner(bot))
+    bot.add_cog(Owner(bot))
