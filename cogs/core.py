@@ -1,13 +1,7 @@
-import io
-import asyncio
-import urllib.request
-import aiosqlite
-import discord
-from PIL import Image
-from discord.ext import commands
-import discordSuperUtils
 import random
-from typing import List
+
+import discord
+from discord.ext import commands
 
 
 class core(commands.Cog):
