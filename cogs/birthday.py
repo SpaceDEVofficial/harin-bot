@@ -27,7 +27,7 @@ def ordinal(num: int) -> str:
     )
 
 
-class invitetracker(commands.Cog):
+class InviteTracker(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.ImageManager = discordSuperUtils.ImageManager()
@@ -56,10 +56,10 @@ class invitetracker(commands.Cog):
             mails = await cur.fetchall()
             check = sum(1 for _ in mails)
             cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
-            CHECK = await cur.fetchone()
-            if str(check) != str(CHECK[1]):
+            check2 = await cur.fetchone()
+            if str(check) != str(check2[1]):
                 mal = discord.Embed(
-                    title=f'📫하린봇 메일함 | {int(check) - int(CHECK[1])}개 수신됨',
+                    title=f'📫하린봇 메일함 | {int(check) - int(check2[1])}개 수신됨',
                     description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
                     colour=ctx.author.colour,
                 )
@@ -221,4 +221,4 @@ class invitetracker(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(invitetracker(bot))
+    bot.add_cog(InviteTracker(bot))
