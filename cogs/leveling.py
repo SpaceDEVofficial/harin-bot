@@ -5,7 +5,6 @@ from discord.ext import commands
 import discordSuperUtils
 
 
-
 class Leveling(commands.Cog, discordSuperUtils.CogManager.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -23,7 +22,7 @@ class Leveling(commands.Cog, discordSuperUtils.CogManager.Cog):
         if ctx.command.name != '메일':
             database = await aiosqlite.connect("db/db.sqlite")
             cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
-            if await cur.fetchone() == None:
+            if await cur.fetchone() is None:
                 cur = await database.execute(f"SELECT * FROM mail")
                 mails = await cur.fetchall()
                 check = 0
@@ -59,7 +58,7 @@ class Leveling(commands.Cog, discordSuperUtils.CogManager.Cog):
         else:
             pass
 
-    @commands.command(name="랭크",aliases=["레벨"])
+    @commands.command(name="랭크", aliases=["레벨"])
     async def rank(self, ctx, member: discord.Member = None):
         database = self.bot.db
         await self.LevelingManager.connect_to_database(
@@ -96,7 +95,6 @@ class Leveling(commands.Cog, discordSuperUtils.CogManager.Cog):
         )
 
         await ctx.send(file=image)
-
 
     @commands.command(name="리더보드")
     async def leaderboard(self, ctx):
