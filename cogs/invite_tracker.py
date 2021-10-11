@@ -57,18 +57,21 @@ class InviteTracker(commands.Cog):
             await self.InviteTracker.register_invite(invite, member, inviter)
 
             channel = self.bot.get_channel(data[1])
-            if inviter is None:
+            if inviter:
                 await channel.send(
-                    f"{member.mention}님은 누군가의 초대로 접속하셨어요. 코드 - {invite.code}"
+                    f"{member.mention}님은 {inviter}님의 초대로 접속하셨어요. 코드 - {invite.code}"
                 )
                 return
             await channel.send(
-                f"{member.mention}님은 {inviter}님의 초대로 접속하셨어요. 코드 - {invite.code}"
+                f"{member.mention}님은 누군가의 초대로 접속하셨어요. 코드 - {invite.code}"
             )
 
     @commands.command(name="초대정보")
-    async def info(self, ctx, member: discord.Member = None):
-        member = ctx.author if not member else member
+    async def info(self,ctx, member: discord.Member = None):
+        if member == None:
+            member == ctx.author
+        else:
+            member == member
         invited_members = await self.InviteTracker.get_user_info(member).get_invited_users()
 
         await ctx.send(

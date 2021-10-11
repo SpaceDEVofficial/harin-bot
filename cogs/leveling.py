@@ -56,10 +56,13 @@ class Leveling(commands.Cog, discordSuperUtils.CogManager.Cog):
     async def on_level_up(self, message, member_data, roles):
         if message.guild.id in [653083797763522580, 786470326732587008]:
             return
-        if str(message.channel.topic).find("-HNoLv") != -1:
-            await message.reply(
+        if not str(message.channel.topic).find("-HNoLv") != -1:
+            """await message.reply(
                 f"🆙축하합니다! `{await member_data.level()}`로 레벨업 하셨어요!🆙"
-            )
+            )"""
+            return
+        else:
+            pass
 
     @commands.command(name="랭크", aliases=["레벨"])
     async def rank(self, ctx, member: discord.Member = None):
@@ -71,7 +74,9 @@ class Leveling(commands.Cog, discordSuperUtils.CogManager.Cog):
         member_data = await self.LevelingManager.get_account(mem_obj)
 
         if not member_data:
-            await ctx.send('정보를 만들고있어요! 조금만 기다려주세요!😘')
+            await ctx.send(
+                f"정보를 만들고있어요! 잠시후 다시 명령어를 입력해주세요!😘"
+            )
             return
 
         guild_leaderboard = await self.LevelingManager.get_leaderboard(ctx.guild)
@@ -97,12 +102,35 @@ class Leveling(commands.Cog, discordSuperUtils.CogManager.Cog):
 
         await ctx.send(file=image)
 
+
+    async def filter_dup(self,data):
+        mem = []
+        new_mem = []
+        xp = []
+        new_xp =[]
+        for x in data:
+            mem.append(x.member.display_name)
+            xp.append(await x.xp())
+        print(mem)
+        print(xp)
+        for m in mem:
+            if m not in new_mem:
+                new_xp.append(m)
+        for p in mem:
+            if p not in new_xp:
+                new_xp.append(p)
+        res = [str(f"멤버: {m}," for m in new_mem) + str(f" XP: {x}" for x in new_xp)]
+        return res
+
     @commands.command(name="리더보드")
     async def leaderboard(self, ctx):
+        database = self.bot.db
+        await self.LevelingManager.connect_to_database(
+            database, ["xp", "roles", "role_list"]
+        )
         guild_leaderboard = await self.LevelingManager.get_leaderboard(ctx.guild)
-        formatted_leaderboard = [
-            f"멤버: {x.member}, XP: {await x.xp()}" for x in guild_leaderboard
-        ]
+        filtering = await self.filter_dup(data=guild_leaderboard)
+        formatted_leaderboard = filtering
 
         await discordSuperUtils.PageManager(
             ctx,
