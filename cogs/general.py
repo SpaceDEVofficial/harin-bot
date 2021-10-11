@@ -307,7 +307,7 @@ class general(commands.Cog):
 
     @commands.command(name="메일", help="`ㅌ메일 (전체)`로 메일을 확인합니다.")
     async def read_mail(self, ctx, mode=None):
-        if mode == None:
+        if mode is None:
             contents = []
             timess = {}
             database = await aiosqlite.connect("db/db.sqlite")
@@ -319,7 +319,7 @@ class general(commands.Cog):
             pages = len(contents)
             cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
             CHECK = await cur.fetchone()
-            if CHECK == None:
+            if CHECK is None:
                 await database.execute(f"INSERT INTO uncheck VALUES (?,?)", (ctx.author.id,
                                                                              str(pages)))
                 await database.commit()
