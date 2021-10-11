@@ -26,7 +26,7 @@ class Leveling(commands.Cog, discordSuperUtils.CogManager.Cog):
                 cur = await database.execute(f"SELECT * FROM mail")
                 mails = await cur.fetchall()
                 check = 0
-                for j in mails:
+                for _j in mails:
                     check += 1
                 mal = discord.Embed(title=f"📫하린봇 메일함 | {str(check)}개 수신됨",
                                     description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
@@ -35,14 +35,14 @@ class Leveling(commands.Cog, discordSuperUtils.CogManager.Cog):
             cur = await database.execute(f"SELECT * FROM mail")
             mails = await cur.fetchall()
             check = 0
-            for j in mails:
+            for _j in mails:
                 check += 1
             cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
-            CHECK = await cur.fetchone()
-            if str(check) == str(CHECK[1]):
+            check2 = await cur.fetchone()
+            if str(check) == str(check2[1]):
                 pass
             else:
-                mal = discord.Embed(title=f"📫하린봇 메일함 | {str(int(check) - int(CHECK[1]))}개 수신됨",
+                mal = discord.Embed(title=f"📫하린봇 메일함 | {str(int(check) - int(check2[1]))}개 수신됨",
                                     description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
                                     colour=ctx.author.colour)
                 await ctx.send(embed=mal)
