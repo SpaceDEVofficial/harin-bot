@@ -10,7 +10,7 @@ from pycord_components import (
 )
 
 
-class general(commands.Cog):
+class General(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.option_dict = {
@@ -49,10 +49,10 @@ class general(commands.Cog):
             mails = await cur.fetchall()
             check = sum(1 for _ in mails)
             cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
-            CHECK = await cur.fetchone()
-            if str(check) != str(CHECK[1]):
+            check2 = await cur.fetchone()
+            if str(check) != str(check2[1]):
                 mal = discord.Embed(
-                    title=f'📫하린봇 메일함 | {int(check) - int(CHECK[1])}개 수신됨',
+                    title=f'📫하린봇 메일함 | {int(check) - int(check2[1])}개 수신됨',
                     description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
                     colour=ctx.author.colour,
                 )
@@ -209,7 +209,7 @@ class general(commands.Cog):
                 await ctx.channel.edit(topic=topic)
                 await msg.edit("성공적으로 적용되었어요.", components=[])
             except discord.Forbidden:
-                await msg.edit(content=f"채널 관리 권한이 없어 변경할 수 없어요! 권한을 재설정해주세요!", components=[])
+                await msg.edit(content='채널 관리 권한이 없어 변경할 수 없어요! 권한을 재설정해주세요!', components=[])
         if value == "-HOnNt":
             channels = ctx.guild.text_channels
             count = []
@@ -220,13 +220,7 @@ class general(commands.Cog):
                 ):
                     count.append(channel.id)
                     break
-            if len(count) == 1:
-                await msg.edit(f"이미 설정되어있는 채널이 있어요! 채널 - <#{count[0]}>", components=[])
-                return
-            else:
-                topic = value if ctx.channel.topic is None else ctx.channel.topic + " " + value
-                await ctx.channel.edit(topic=topic)
-                await msg.edit("성공적으로 적용되었어요.", components=[])
+            await self.msg_edit_channel(ctx, msg, count, value)
         if value == "-HOnBtd":
             channels = ctx.guild.text_channels
             count = []
@@ -237,13 +231,7 @@ class general(commands.Cog):
                 ):
                     count.append(channel.id)
                     break
-            if len(count) == 1:
-                await msg.edit(f"이미 설정되어있는 채널이 있어요! 채널 - <#{count[0]}>", components=[])
-                return
-            else:
-                topic = value if ctx.channel.topic is None else ctx.channel.topic + " " + value
-                await ctx.channel.edit(topic=topic)
-                await msg.edit("성공적으로 적용되었어요.", components=[])
+            await self.msg_edit_channel(ctx, msg, count, value)
 
     @commands.command(name="프사")
     async def avatar(self, ctx, member: discord.Member = None):
@@ -342,6 +330,16 @@ class general(commands.Cog):
         )
         await ctx.reply(embed=embed)
 
+    @staticmethod
+    async def msg_edit_channel(ctx, msg, count, value):
+        if len(count) == 1:
+            await msg.edit(f"이미 설정되어있는 채널이 있어요! 채널 - <#{count[0]}>", components=[])
+            return
+        else:
+            topic = value if ctx.channel.topic is None else ctx.channel.topic + " " + value
+            await ctx.channel.edit(topic=topic)
+            await msg.edit("성공적으로 적용되었어요.", components=[])
+
 
 def setup(bot):
-    bot.add_cog(general(bot))
+    bot.add_cog(General(bot))
