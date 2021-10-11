@@ -20,8 +20,8 @@ class General(commands.Cog):
     async def verification(self, ctx):
         await ctx.send("gawi#9537(281566165699002379)")
 
-    @commands.command(name="도움",aliases=["도움말","help"])
-    async def help(self,ctx):
+    @commands.command(name="도움", aliases=["도움말", "help"])
+    async def help(self, ctx):
         global embeds
         main = discord.Embed(
             title="메인페이지",
@@ -381,7 +381,8 @@ class General(commands.Cog):
                                         colour=ctx.author.colour)
                     mal.add_field(name="📭빈 메일함", value="✅모든 메일을 읽으셨어요. 전체메일을 보고싶으시면 '하린아 메일 전체'를 입력하세요.")
                     return await ctx.send(embed=mal)
-                await database.execute("UPDATE uncheck SET check_s = %s WHERE user_id = %s", (str(pages), ctx.author.id))
+                await database.execute("UPDATE uncheck SET check_s = %s WHERE user_id = %s",
+                                       (str(pages), ctx.author.id))
                 mal = discord.Embed(title=f"📫하린봇 메일함 | {pages - int(check2[1])}개 수신됨",
                                     description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
                                     colour=ctx.author.colour)

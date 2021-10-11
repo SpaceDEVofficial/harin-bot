@@ -107,16 +107,17 @@ class InviteTracker(commands.Cog):
                     if i not in new_dates:
                         new_dates.append(i)
                 await interaction.edit_origin(embed=em,
-            components=[
-                self.bot.components_manager.add_callback(
-                    Select(
-                        options=[
-                            SelectOption(label=i[2], value=i[2]) for i in new_dates
-                        ],
-                    ),
-                    callback,
-                )
-            ])
+                                              components=[
+                                                  self.bot.components_manager.add_callback(
+                                                      Select(
+                                                          options=[
+                                                              SelectOption(label=i[2], value=i[2]) for i in new_dates
+                                                          ],
+                                                      ),
+                                                      callback,
+                                                  )
+                                              ])
+
         db = await aiosqlite.connect("db/db.sqlite")
         cur = await db.execute("SELECT * FROM chulcheck")
         res = await cur.fetchall()
