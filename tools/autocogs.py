@@ -1,4 +1,4 @@
-def AutoCogs(self):
+def autocogs(self):
     os = __import__("os")
     cog_list = os.listdir("cogs/")
     cog_list = [cog for cog in cog_list if cog.endswith(".py")]
@@ -8,7 +8,7 @@ def AutoCogs(self):
     self.load_extension("jishaku")
 
 
-def AutoCogsReload(self):
+def autocogsreload(self):
     os = __import__("os")
     cog_list = os.listdir("cogs/")
     cog_list = [cog for cog in cog_list if cog.endswith(".py")]
