@@ -1,72 +1,74 @@
-import io
-import asyncio
-import urllib.request
 from datetime import datetime, timezone
 
 import aiosqlite
 import discord
-import pytz
-from PIL import Image
-from discord.ext import commands
 import discordSuperUtils
-class invitetracker(commands.Cog):
+import pytz
+from discord.ext import commands
+
+
+def ordinal(num: int) -> str:
+    """
+    Returns the ordinal representation of a number
+    Examples:
+        11: 11th
+        13: 13th
+        14: 14th
+        3: 3rd
+        5: 5th
+    :param num:
+    :return:
+    """
+
+    return (
+        f"{num}th"
+        if 11 <= (num % 100) <= 13
+        else f"{num}{['th', 'st', 'nd', 'rd', 'th'][min(num % 10, 4)]}"
+    )
+
+
+class InviteTracker(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.ImageManager = discordSuperUtils.ImageManager()
         self.BirthdayManager = discordSuperUtils.BirthdayManager(self.bot)
 
+    # noinspection DuplicatedCode
     async def cog_before_invoke(self, ctx: commands.Context):
         print(ctx.command)
         if ctx.command.name != '메일':
             database = await aiosqlite.connect("db/db.sqlite")
-            cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
-            if await cur.fetchone() == None:
-                cur = await database.execute(f"SELECT * FROM mail")
+            cur = await database.execute(
+                'SELECT * FROM uncheck WHERE user_id = ?', (ctx.author.id,)
+            )
+
+            if await cur.fetchone() is None:
+                cur = await database.execute('SELECT * FROM mail')
                 mails = await cur.fetchall()
-                check = 0
-                for j in mails:
-                    check += 1
-                mal = discord.Embed(title=f"📫하린봇 메일함 | {str(check)}개 수신됨",
-                                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
-                                    colour=ctx.author.colour)
+                check = sum(1 for _ in mails)
+                mal = discord.Embed(
+                    title=f'📫하린봇 메일함 | {check}개 수신됨',
+                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                    colour=ctx.author.colour,
+                )
+
                 return await ctx.send(embed=mal)
-            cur = await database.execute(f"SELECT * FROM mail")
+            cur = await database.execute("SELECT * FROM mail")
             mails = await cur.fetchall()
-            check = 0
-            for j in mails:
-                check += 1
-            cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
-            CHECK = await cur.fetchone()
-            if str(check) == str(CHECK[1]):
-                pass
-            else:
-                mal = discord.Embed(title=f"📫하린봇 메일함 | {str(int(check) - int(CHECK[1]))}개 수신됨",
-                                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
-                                    colour=ctx.author.colour)
+            check = sum(1 for _ in mails)
+            cur = await database.execute("SELECT * FROM uncheck WHERE user_id = ?", ctx.author.id)
+            check2 = await cur.fetchone()
+            if str(check) != str(check2[1]):
+                mal = discord.Embed(
+                    title=f'📫하린봇 메일함 | {int(check) - int(check2[1])}개 수신됨',
+                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                    colour=ctx.author.colour,
+                )
+
                 await ctx.send(embed=mal)
 
-
-    def ordinal(self,num: int) -> str:
-        """
-        Returns the ordinal representation of a number
-        Examples:
-            11: 11th
-            13: 13th
-            14: 14th
-            3: 3rd
-            5: 5th
-        :param num:
-        :return:
-        """
-
-        return (
-            f"{num}th"
-            if 11 <= (num % 100) <= 13
-            else f"{num}{['th', 'st', 'nd', 'rd', 'th'][min(num % 10, 4)]}"
-        )
-
     @discordSuperUtils.CogManager.event(discordSuperUtils.BirthdayManager)
-    async def on_member_birthday(self,birthday_member):
+    async def on_member_birthday(self, birthday_member):
         # Incase you want to support multiple guilds, you must create a channel system.
         # For example, to create a channel system you can make a "set_birthday_channel" command, and in on_member_birthday,
         # you can fetch the same channel and send birthday updates there.
@@ -76,22 +78,24 @@ class invitetracker(commands.Cog):
         # the channel IDs wont be changed and the bot is not supposed to work on other guilds.
         channels = birthday_member.member.guild.text_channels
         for channel in channels:
-            if channel.topic is not None:
-                if str(channel.topic).find("-HOnBtd") != -1:
-                    channel = birthday_member.member.guild.get_channel(channel.id)
-                    if channel:
-                        embed = discord.Embed(
-                            title="생일 축하합니다!! 🥳",
-                            description=f"{self.ordinal(await birthday_member.age())}번째 생일을 축하드립니다!🎉, {birthday_member.member.mention}!",
-                            color=0x00FF00,
-                        )
+            if (
+                    channel.topic is not None
+                    and str(channel.topic).find("-HOnBtd") != -1
+            ):
+                channel = birthday_member.member.guild.get_channel(channel.id)
+                if channel:
+                    embed = discord.Embed(
+                        title="생일 축하합니다!! 🥳",
+                        description=f"{ordinal(await birthday_member.age())}번째 생일을 축하드립니다!🎉, {birthday_member.member.mention}!",
+                        color=0x00FF00,
+                    )
 
-                        embed.set_thumbnail(url=birthday_member.member.avatar_url)
+                    embed.set_thumbnail(url=birthday_member.member.avatar_url)
 
-                        await channel.send(content=birthday_member.member.mention, embed=embed)
+                    await channel.send(content=birthday_member.member.mention, embed=embed)
 
     @commands.command(name="생일목록")
-    async def upcoming(self,ctx):
+    async def upcoming(self, ctx):
         await self.BirthdayManager.connect_to_database(self.bot.db, ["birthdays"])
         guild_upcoming = await self.BirthdayManager.get_upcoming(ctx.guild)
         formatted_upcoming = [
@@ -110,14 +114,10 @@ class invitetracker(commands.Cog):
         ).run()
 
     @commands.command(name="생일")
-    async def birthday(self,ctx, member: discord.Member = None):
+    async def birthday(self, ctx, member: discord.Member = None):
         database = self.bot.db
         await self.BirthdayManager.connect_to_database(database, ["birthdays"])
-        if member == None:
-            member = ctx.author
-        else:
-            member = member
-
+        member = ctx.author if member is None else member
         member_birthday = await self.BirthdayManager.get_birthday(member)
 
         if not member_birthday:
@@ -140,9 +140,8 @@ class invitetracker(commands.Cog):
 
         await ctx.send(embed=embed)
 
-
     @commands.command(name="생일삭제")
-    async def delete_birthday(self,ctx):
+    async def delete_birthday(self, ctx):
         # You can make the command admin-only, take the member as a parameter etc.
         database = self.bot.db
         await self.BirthdayManager.connect_to_database(database, ["birthdays"])
@@ -163,7 +162,7 @@ class invitetracker(commands.Cog):
         await ctx.send(embed=embed)
 
     @commands.command(name="생일등록")
-    async def setup_birthday(self,ctx):
+    async def setup_birthday(self, ctx):
         await self.BirthdayManager.connect_to_database(self.bot.db, ["birthdays"])
         questions = [
             "태어난 연도는 언제인가요?",
@@ -222,4 +221,4 @@ class invitetracker(commands.Cog):
 
 
 def setup(bot):
-    bot.add_cog(invitetracker(bot))
+    bot.add_cog(InviteTracker(bot))

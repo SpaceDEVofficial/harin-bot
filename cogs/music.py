@@ -1,14 +1,12 @@
-import aiosqlite
-import discord
-from discord.ext import commands
-
-import discordSuperUtils
-from discordSuperUtils import MusicManager, PageManager
-
 import datetime
 import time
 from typing import Optional
 
+import aiosqlite
+import discord
+import discordSuperUtils
+from discord.ext import commands
+from discordSuperUtils import MusicManager
 
 
 # Format duration
@@ -21,6 +19,7 @@ def parse_duration(duration: Optional[float]) -> str:
 
 
 # Format view count
+# noinspection DuplicatedCode
 def parse_count(count):
     original_count = count
 
@@ -41,6 +40,7 @@ def parse_count(count):
         )
     except IndexError:
         return original_count
+
 
 class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
     def __init__(self, bot):
@@ -64,34 +64,38 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
         self.ImageManager = discordSuperUtils.ImageManager()
         super().__init__()
 
+    # noinspection DuplicatedCode
     async def cog_before_invoke(self, ctx: commands.Context):
         print(ctx.command)
         if ctx.command.name != '메일':
             database = await aiosqlite.connect("db/db.sqlite")
-            cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
-            if await cur.fetchone() == None:
-                cur = await database.execute(f"SELECT * FROM mail")
+            cur = await database.execute(
+                'SELECT * FROM uncheck WHERE user_id = ?', (ctx.author.id,)
+            )
+
+            if await cur.fetchone() is None:
+                cur = await database.execute("SELECT * FROM mail")
                 mails = await cur.fetchall()
-                check = 0
-                for j in mails:
-                    check += 1
-                mal = discord.Embed(title=f"📫하린봇 메일함 | {str(check)}개 수신됨",
-                                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
-                                    colour=ctx.author.colour)
+                check = sum(1 for _ in mails)
+                mal = discord.Embed(
+                    title=f'📫하린봇 메일함 | {check}개 수신됨',
+                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                    colour=ctx.author.colour,
+                )
+
                 return await ctx.send(embed=mal)
-            cur = await database.execute(f"SELECT * FROM mail")
+            cur = await database.execute('SELECT * FROM mail')
             mails = await cur.fetchall()
-            check = 0
-            for j in mails:
-                check += 1
-            cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
-            CHECK = await cur.fetchone()
-            if str(check) == str(CHECK[1]):
-                pass
-            else:
-                mal = discord.Embed(title=f"📫하린봇 메일함 | {str(int(check) - int(CHECK[1]))}개 수신됨",
-                                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
-                                    colour=ctx.author.colour)
+            check = sum(1 for _ in mails)
+            cur = await database.execute("SELECT * FROM uncheck WHERE user_id = %s", ctx.author.id)
+            check2 = await cur.fetchone()
+            if str(check) != str(check2[1]):
+                mal = discord.Embed(
+                    title=f'📫하린봇 메일함 | {int(check) - int(check2[1])}개 수신됨',
+                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
+                    colour=ctx.author.colour,
+                )
+
                 await ctx.send(embed=mal)
 
     # Play function
@@ -114,7 +118,7 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
 
     # cog error handler
     async def cog_command_error(
-        self, ctx: commands.Context, error: commands.CommandError
+            self, ctx: commands.Context, error: commands.CommandError
     ):
         print("An error occurred: {}".format(str(error)))
 
@@ -123,7 +127,7 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
     async def on_music_error(self, ctx, error):
         errors = {
             discordSuperUtils.NotPlaying: "지금은 노래를 재생중이지 않아요..",
-            discordSuperUtils.NotConnected: f"제가 아직 음성채널에 접속중이지 않아요!",
+            discordSuperUtils.NotConnected: '제가 아직 음성채널에 접속중이지 않아요!',
             discordSuperUtils.NotPaused: "노래가 아직 멈추지않았어요!",
             discordSuperUtils.QueueEmpty: "큐가 비어있어요!",
             discordSuperUtils.AlreadyConnected: "이미 음성채널에 접속되어있어요!",
@@ -304,9 +308,9 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
     # Volume command
     @commands.command(name="볼륨")
     async def volume(self, ctx, volume: int = None):
-        if volume == None:
+        if volume is None:
             current_volume = await self.MusicManager.volume(ctx)
-            await ctx.send("현재 볼륨 " + current_volume +"%")
+            await ctx.send("현재 볼륨 " + current_volume + "%")
         if await self.MusicManager.volume(ctx, volume) is not None:
             current_volume = await self.MusicManager.volume(ctx, volume)
             await ctx.send(f"볼름은 다음으로 설정했어요. `{current_volume}%`")
@@ -317,7 +321,8 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
         is_loop = await self.MusicManager.loop(ctx)
 
         if is_loop is not None:
-            await ctx.send(f"반복기능을 {'활성화 <:activ:896255701641474068>' if is_loop else '비활성화 <:disactiv:896388083816218654>'} 했어요")
+            await ctx.send(
+                f"반복기능을 {'활성화 <:activ:896255701641474068>' if is_loop else '비활성화 <:disactiv:896388083816218654>'} 했어요")
 
     # Queue loop command
     @commands.command(name="큐루프")
@@ -325,7 +330,8 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
         is_loop = await self.MusicManager.queueloop(ctx)
 
         if is_loop is not None:
-            await ctx.send(f"큐반복기능을 {'활성화 <:activ:896255701641474068>' if is_loop else '비활성화 <:disactiv:896388083816218654>'} 했어요")
+            await ctx.send(
+                f"큐반복기능을 {'활성화 <:activ:896255701641474068>' if is_loop else '비활성화 <:disactiv:896388083816218654>'} 했어요")
 
     # History command
     @commands.command(name="노래기록")
@@ -360,11 +366,10 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
     @commands.command(name="스킵")
     async def skip(self, ctx, index: int = None):
         if queue := (await self.MusicManager.get_queue(ctx)):
-            voter = ctx.author
             requester = (await self.MusicManager.now_playing(ctx)).requester
 
             # Checking if the song is autoplayed
-            if requester == None:
+            if requester is None:
                 await ctx.send("자동재생 곡을 스킵했어요.⏩")
                 await self.MusicManager.skip(ctx, index)
 
@@ -394,7 +399,7 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
 
                 # Voting
                 elif (
-                    voter.id not in self.skip_votes[ctx.guild.id]
+                        voter.id not in self.skip_votes[ctx.guild.id]
                 ):  # Checking if someone already voted
                     # Adding the voter id to skip votes
                     self.skip_votes[ctx.guild.id].append(voter.id)
@@ -480,9 +485,9 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
 
         if is_autoplay is not None:
             if is_autoplay:
-                await ctx.send(f"자동재생이 황성화되었어요.")
+                await ctx.send('자동재생이 활성화되었어요.')
             else:
-                await ctx.send(f"자동재생이 비황성화되었어요.")
+                await ctx.send('자동재생이 비활성화되었어요.')
 
     # Shuffle command
     @commands.command(name="셔플")
@@ -491,17 +496,15 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
 
         if is_shuffle is not None:
             if is_shuffle:
-                await ctx.send(f"셔플이 황성화되었어요.")
+                await ctx.send('셔플이 활성화되었어요.')
             else:
-                await ctx.send(f"셔플 비황성화되었어요.")
+                await ctx.send('셔플이 비활성화되었어요.')
 
     # Previous/Rewind command
     @commands.command(name="이전곡")
     async def previous(self, ctx, index: int = None):
         if previous_player := await self.MusicManager.previous(ctx, index):
             await ctx.send(f"{previous_player[0].title}로부터 이전곡을 재생해요")
-
-
 
     # Before invoke checks. Add more commands if you wish to
     @join.before_invoke
@@ -511,11 +514,12 @@ class Music(commands.Cog, discordSuperUtils.CogManager.Cog, name="Music"):
             await ctx.send("You are not connected to any voice channel.")
             raise commands.CommandError()
 
-        if ctx.voice_client:
-            if ctx.voice_client.channel != ctx.author.voice.channel:
-                await ctx.send("Bot is already in a voice channel.")
-                raise commands.CommandError()
-        # Or raise a custom error
+        if (
+                ctx.voice_client
+                and ctx.voice_client.channel != ctx.author.voice.channel
+        ):
+            await ctx.send("Bot is already in a voice channel.")
+            raise commands.CommandError()
 
 
 def setup(bot):
