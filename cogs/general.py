@@ -356,39 +356,37 @@ class general(commands.Cog):
 
     @commands.command(name="메일", help="`ㅌ메일 (전체)`로 메일을 확인합니다.")
     async def read_mail(self, ctx, mode=None):
-        if mode == None:
-            contents = []
-            timess = {}
-            database = await aiosqlite.connect("db/db.sqlite")
-            cur = await database.execute(f"SELECT * FROM mail")
-            mails = await cur.fetchall()
-            for i in mails:
-                contents.append(i[1])
-                timess[i[1]] = i[2]
-            pages = len(contents)
-            cur = await database.execute(f"SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
-            CHECK = await cur.fetchone()
-            if CHECK == None:
-                await database.execute(f"INSERT INTO uncheck VALUES (?,?)", (ctx.author.id,
-                                                                             str(pages)))
+        if mode is None:
+            dictcommand = await self.read_email_from_db(ctx=ctx)
+            database = dictcommand["database"]
+            contents = dictcommand["contents"]
+            cur = dictcommand["cur"]
+            uncheck_cur = dictcommand["uncheck_cur"]
+            timess = dictcommand["timess"]
+            pages = dictcommand["pages"]
+            check2 = await cur.fetchone()
+            uncheck_cur_fetchone = await uncheck_cur.fetchone()
+            if uncheck_cur_fetchone is None:
+                await database.execute("INSERT INTO uncheck VALUES (?, ?)", (ctx.author.id, str(pages)))
                 await database.commit()
                 mal = discord.Embed(title=f"📫하린봇 메일함 | {str(pages)}개 수신됨",
                                     description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
                                     colour=ctx.author.colour)
                 cur_page = 1
             else:
-                if str(pages) == str(CHECK[1]):
+                if str(pages) == str(check2[1]):
                     mal = discord.Embed(title=f"📫하린봇 메일함 | 수신된 메일이 없어요.",
                                         description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
                                         colour=ctx.author.colour)
                     mal.add_field(name="📭빈 메일함", value="✅모든 메일을 읽으셨어요. 전체메일을 보고싶으시면 '하린아 메일 전체'를 입력하세요.")
                     return await ctx.send(embed=mal)
-                await database.execute(f"UPDATE uncheck SET check_s = ? WHERE user_id = ?",
+                await database.execute("UPDATE uncheck SET check_s = ? WHERE user_id = ?",
                                        (str(pages), ctx.author.id))
-                mal = discord.Embed(title=f"📫하린봇 메일함 | {pages - int(CHECK[1])}개 수신됨",
+                mal = discord.Embed(title=f"📫하린봇 메일함 | {pages - int(check2[1])}개 수신됨",
                                     description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
                                     colour=ctx.author.colour)
-                cur_page = int(CHECK[1])
+                cur_page = int(check2[1])
+            # noinspection DuplicatedCode
             mal.add_field(name=f"{pages}중 {cur_page}번째 메일({timess[contents[cur_page - 1]]}작성)",
                           value=contents[cur_page - 1])
             message = await ctx.send(embed=mal)
@@ -399,7 +397,6 @@ class general(commands.Cog):
 
             def check(reaction, user):
                 return user == ctx.author and str(reaction.emoji) in ["◀️", "▶️"] and reaction.message.id == message.id
-                # This makes sure nobody except the command sender can interact with the "menu"
 
             while True:
                 try:
@@ -408,7 +405,7 @@ class general(commands.Cog):
                     # example
 
                     if str(reaction.emoji) == "▶️" and cur_page != pages:
-                        if CHECK == None:
+                        if check2 is None:
                             cur_page += 1
                             mal = discord.Embed(title=f"📫하린봇 메일함 | {str(pages)}개 수신됨",
                                                 description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
@@ -416,7 +413,7 @@ class general(commands.Cog):
                             mal.add_field(name=f"{pages}중 {cur_page}번째 메일", value=contents[cur_page - 1])
                         else:
                             cur_page += 1
-                            mal = discord.Embed(title=f"📫하린봇 메일함 | {pages - int(CHECK[1])}개 수신됨",
+                            mal = discord.Embed(title=f"📫하린봇 메일함 | {pages - int(check2[1])}개 수신됨",
                                                 description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
                                                 colour=ctx.author.colour)
                             mal.add_field(name=f"{pages}중 {cur_page}번째 메일({timess[contents[cur_page - 1]]}작성)",
@@ -424,7 +421,7 @@ class general(commands.Cog):
                         await message.edit(embed=mal)
 
                     elif str(reaction.emoji) == "◀️" and cur_page > 1:
-                        if CHECK == None:
+                        if check2 is None:
                             cur_page -= 1
                             mal = discord.Embed(title=f"📫하린봇 메일함 | {str(pages)}개 수신됨",
                                                 description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
@@ -432,7 +429,7 @@ class general(commands.Cog):
                             mal.add_field(name=f"{pages}중 {cur_page}번째 메일", value=contents[cur_page - 1])
                         else:
                             cur_page -= 1
-                            mal = discord.Embed(title=f"📫하린봇 메일함 | {pages - int(CHECK[1])}개 수신됨",
+                            mal = discord.Embed(title=f"📫하린봇 메일함 | {pages - int(check2[1])}개 수신됨",
                                                 description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
                                                 colour=ctx.author.colour)
                             mal.add_field(name=f"{pages}중 {cur_page}번째 메일({timess[contents[cur_page - 1]]}작성)",
@@ -441,23 +438,18 @@ class general(commands.Cog):
                 except asyncio.TimeoutError:
                     break
         elif mode == "전체":
-            contents = []
-            timess = {}
-            database = await aiosqlite.connect("db/db.sqlite")
-            cur = await database.execute(f"SELECT * FROM mail")
-            mails = await cur.fetchall()
-            for i in mails:
-                contents.append(i[1])
-                timess[i[1]] = i[2]
-            pages = len(contents)
+            dictcommand = await self.read_email_from_db(ctx=ctx)
+            contents = dictcommand["contents"]
+            timess = dictcommand["timess"]
+            pages = dictcommand["pages"]
             mal = discord.Embed(title=f"📫하린봇 메일함",
                                 description="주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
                                 colour=ctx.author.colour)
             cur_page = 1
+            # noinspection DuplicatedCode
             mal.add_field(name=f"{pages}중 {cur_page}번째 메일({timess[contents[cur_page - 1]]}작성)",
                           value=contents[cur_page - 1])
             message = await ctx.send(embed=mal)
-            # getting the message object for editing and reacting
 
             await message.add_reaction("◀️")
             await message.add_reaction("▶️")
@@ -491,6 +483,20 @@ class general(commands.Cog):
                         await message.edit(embed=mal)
                 except asyncio.TimeoutError:
                     break
+
+    @staticmethod
+    async def read_email_from_db(ctx):
+        contents = []
+        timess = {}
+        database = await aiosqlite.connect("db/db.sqlite")
+        cur = await database.execute('SELECT * FROM mail')
+        uncheck_cur = await database.execute('SELECT * FROM uncheck WHERE user_id = ?',(ctx.author.id,))
+        mails = await cur.fetchall()
+        for i in mails:
+            contents.append(i[1])
+            timess[i[1]] = i[2]
+        pages = len(contents)
+        return {"contents": contents, "timess": timess, "database": database, "cur": cur, "uncheck_cur":uncheck_cur, "pages": pages}
 
 def setup(bot):
     bot.add_cog(general(bot))
