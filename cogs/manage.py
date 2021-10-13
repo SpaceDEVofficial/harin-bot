@@ -172,6 +172,7 @@ class Manage(commands.Cog):
         )
         em.set_footer(text="이 공지는 하린봇과 무관한 서버별 공지기능입니다.")
         await channel.send(embed=em)
+        await ctx.message.add_reaction("✅")
 
     @staticmethod
     async def make_infraction_embed_and_send(ctx, infraction, member):

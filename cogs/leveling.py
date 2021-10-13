@@ -21,7 +21,7 @@ class Leveling(commands.Cog, discordSuperUtils.CogManager.Cog):
     async def cog_before_invoke(self, ctx: commands.Context):
         print(ctx.command)
         if ctx.command.name != '메일':
-            database = await aiosqlite.connect("db/db.sqlite")
+            database =await aiosqlite.connect("db/db.sqlite")
             cur = await database.execute(
                 'SELECT * FROM uncheck WHERE user_id = ?', (ctx.author.id,)
             )
@@ -40,7 +40,7 @@ class Leveling(commands.Cog, discordSuperUtils.CogManager.Cog):
             cur = await database.execute('SELECT * FROM mail')
             mails = await cur.fetchall()
             check = sum(1 for _ in mails)
-            cur = await database.execute("SELECT * FROM uncheck WHERE user_id = %s", ctx.author.id)
+            cur = await database.execute("SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
             check2 = await cur.fetchone()
             if str(check) != str(check2[1]):
                 mal = discord.Embed(
@@ -56,7 +56,7 @@ class Leveling(commands.Cog, discordSuperUtils.CogManager.Cog):
     async def on_level_up(self, message, member_data, roles):
         if message.guild.id in [653083797763522580, 786470326732587008]:
             return
-        if str(message.channel.topic).find("-HNoLv") != -1:
+        if not str(message.channel.topic).find("-HNoLv") != -1:
             await message.reply(
                 f"🆙축하합니다! `{await member_data.level()}`로 레벨업 하셨어요!🆙"
             )

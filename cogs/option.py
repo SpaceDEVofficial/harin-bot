@@ -4,6 +4,7 @@ import platform
 import aiosqlite
 import discord
 from discord.ext import commands
+from discordSuperUtils import ModMailManager
 from pycord_components import (
     Select,
     SelectOption
@@ -25,6 +26,7 @@ class General(commands.Cog):
             "wlc": "welcome",
             "ivt": "invite_tracker"
         }
+        self.ModmailManager = ModMailManager(bot, trigger="-modmail")
 
     async def cog_before_invoke(self, ctx: commands.Context):
         print(ctx.command)
@@ -48,7 +50,7 @@ class General(commands.Cog):
             cur = await database.execute('SELECT * FROM mail')
             mails = await cur.fetchall()
             check = sum(1 for _ in mails)
-            cur = await database.execute("SELECT * FROM uncheck WHERE user_id = %s", ctx.author.id)
+            cur = await database.execute("SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
             check2 = await cur.fetchone()
             if str(check) != str(check2[1]):
                 mal = discord.Embed(
@@ -67,6 +69,12 @@ class General(commands.Cog):
             on_option.append(self.option_dict["-HNoAts"]+" <:activ:896255701641474068>")"""
         if "-HNoLv" in topics:
             on_option.append(self.option_dict["-HNoLv"] + " <:activ:896255701641474068>")
+        """try:
+            await self.ModmailManager.connect_to_database(self.bot.db, ["modmail"])
+            channel = await self.ModmailManager.get_channel(ctx.guild)
+            on_option.append(f"문의 채널 - {channel.mention} <:activ:896255701641474068>")
+        except:
+            pass"""
         channels = ctx.guild.text_channels
         for channel in channels:
             if (
@@ -89,6 +97,10 @@ class General(commands.Cog):
         data = await cur.fetchone()
         if data is not None:
             on_option.append(self.option_dict["ivt"] + " <:activ:896255701641474068>")
+        cur = await database.execute("SELECT * FROM serverstat WHERE guild = ?", (ctx.guild.id,))
+        data = await cur.fetchone()
+        if data is not None:
+            on_option.append("서버스텟 <:activ:896255701641474068>")
         if not on_option:
             return "적용된 옵션이 없어요"
         return "\n".join(on_option)
@@ -120,6 +132,9 @@ class General(commands.Cog):
                                              SelectOption(label="생일알림채널",
                                                           description="이 채널을 생일알림 채널로 설정해요.",
                                                           value="-HOnBtd", emoji="🎉"),
+                                             SelectOption(label="서버스텟",
+                                                          description="서버스텟기능을 사용해요.",
+                                                          value="serverstat", emoji="📊"),
                                              SelectOption(label="리셋",
                                                           description="적용되어있는 옵션을 리셋합니다.",
                                                           value="reset", emoji="🔄"),
@@ -163,7 +178,7 @@ class General(commands.Cog):
                 return
             await msg.edit("저장중이에요!", components=[])
             try:
-                await database.execute("INSERT INTO {self.option_dict_db[value]}(guild,channel) VALUES (%s, %s)",
+                await database.execute(f"INSERT INTO {self.option_dict_db[value]}(guild,channel) VALUES (?, ?)",
                                        (ctx.guild.id, int(message)))
                 await database.commit()
             except Exception as e:
@@ -195,6 +210,10 @@ class General(commands.Cog):
             # noinspection PyBroadException
             try:
                 await database.execute("DELETE FROM invite_tracker WHERE guild = ?", (ctx.guild.id,))
+            except Exception as e:
+                print(e)
+            try:
+                await database.execute("DELETE FROM serverstat WHERE guild = ?", (ctx.guild.id,))
             except Exception as e:
                 print(e)
             await database.commit()
@@ -236,6 +255,15 @@ class General(commands.Cog):
                     count.append(channel.id)
                     break
             await self.msg_edit_channel(ctx, msg, count, value)
+        if value == "modmail":
+            await msg.edit("저장중이에요!", components=[])
+            await self.ModmailManager.connect_to_database(self.bot.db, ["modmail"])
+            await self.ModmailManager.set_channel(ctx.channel)
+            await msg.edit("성공적으로 적용되었어요.", components=[])
+        if value == "serverstat":
+            database = await aiosqlite.connect("db/db.sqlite")
+            await self.setup_serverstat(ctx=ctx,guild=ctx.guild,msg=msg,db=database)
+
 
     @commands.command(name="프사")
     async def avatar(self, ctx, member: discord.Member = None):
@@ -343,6 +371,45 @@ class General(commands.Cog):
             topic = value if ctx.channel.topic is None else ctx.channel.topic + " " + value
             await ctx.channel.edit(topic=topic)
             await msg.edit("성공적으로 적용되었어요.", components=[])
+
+    @staticmethod
+    async def setup_serverstat(ctx:commands.Context,guild:discord.Guild,msg:discord.Message,db):
+        cur = await db.execute("SELECT * FROM serverstat WHERE guild = ?",(ctx.guild.id,))
+        data = await cur.fetchone()
+        if not data is None:
+            return await msg.edit(content="이미 서버스텟기능을 사용중이에요.",components=[])
+        category_text = "📊| 서버스텟 |📊"
+        all_text = "😶🤖모든인원수-{all}"
+        user_text = "😶유저수-{user}"
+        bot_text = "🤖봇수-{bots}"
+        all_count = len(guild.members)
+        user_count = len([m for m in guild.members if not m.bot])
+        bot_count = len([m for m in guild.members if m.bot])
+        try:
+            category = await guild.create_category(name=category_text,position=0)
+            overwrites = {
+                guild.default_role: discord.PermissionOverwrite(connect=False)
+            }
+            all_channel = await category.create_voice_channel(name=all_text.format(all=all_count),overwrites=overwrites)
+            user_channel = await category.create_voice_channel(name=user_text.format(user=user_count), overwrites=overwrites)
+            bot_channel = await category.create_voice_channel(name=bot_text.format(bots=bot_count), overwrites=overwrites)
+        except discord.Forbidden:
+            return await msg.edit(content="저에게 채널관리 권한이 없어요! 권한을 부여해주세요!",components=[])
+        await db.execute("""
+        INSERT INTO serverstat(guild,category,all_channel,bot_channel,user_channel,category_text,all_channel_text,bot_channel_text,user_channel_text) VALUES(?,?,?,?,?,?,?,?,?)
+        """,
+                         (guild.id,
+                          category.id,
+                          all_channel.id,
+                          bot_channel.id,
+                          user_channel.id,
+                          category_text,
+                          all_text,
+                          bot_text,
+                          user_text))
+        await db.commit()
+        await msg.edit(content="성공적으로 생성 및 저장하였어요!",components=[])
+
 
 
 def setup(bot):

@@ -45,6 +45,8 @@ class Owner(commands.Cog):
             for _channel in channels:
                 if guild.id in ok_guild:
                     break
+                if guild.id in [653083797763522580, 786470326732587008]:
+                    break
                 random_channel = random.choices(channels)
                 ok.append(random_channel[0].id)
                 break

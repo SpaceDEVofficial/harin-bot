@@ -14,7 +14,6 @@ def random_chat(suggest):
 
 class MyCommandGenerator(discordSuperUtils.CommandResponseGenerator):
     def generate(self, invalid_command: str, suggestion: List[str]) -> str:
-        # This is only an example, you can use the default generator if you want to.
         return random_chat(suggest=suggestion[0])
 
 

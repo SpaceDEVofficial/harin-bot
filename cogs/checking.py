@@ -8,7 +8,8 @@ from discord.ext import commands
 from pycord_components import (
     Select,
     SelectOption,
-    Interaction
+    Interaction,
+    Button
 )
 
 
@@ -82,13 +83,21 @@ class InviteTracker(commands.Cog):
 
     @chulcheck.command(name="리더보드")
     async def chulcheck_leaderboard(self,ctx):
+        db = await aiosqlite.connect("db/db.sqlite")
+        cur = await db.execute("SELECT * FROM chulcheck")
+        res = await cur.fetchall()
+        dates = [i[2] for i in res]
+        new_dates = []
+        for i in dates:
+            if i not in new_dates:
+                new_dates.append(i)
         async def btn_callback(interaction: Interaction):
             if interaction.custom_id == "close":
                 await interaction.message.delete()
         async def callback(interaction: Interaction):
             values = interaction.values[0]
             if interaction.user.id == ctx.author.id:
-                cur = await db.execute("SELECT * FROM chulcheck WHERE stand = ? ORDER BY dates", values)
+                cur = await db.execute("SELECT * FROM chulcheck WHERE stand = ? ORDER BY dates", (values,))
                 res = await cur.fetchall()
                 check_list = []
                 num = 0
@@ -102,31 +111,29 @@ class InviteTracker(commands.Cog):
                     title=f"{values} | 출석체크 리더보드",
                     description=f"누가 가장먼저 출석체크를 했을까요?```fix\n{leaderboard}```"
                 )
-                dates = [i[2] for i in res]
-                new_dates = []
-                for i in dates:
-                    if i not in new_dates:
-                        new_dates.append(i)
+                """dates_two = [i[2] for i in res]
+                new_dates_two = []
+                for i in dates_two:
+                    if i not in new_dates_two:
+                        new_dates_two.append(i)"""
                 await interaction.edit_origin(embed=em,
                                               components=[
                                                   self.bot.components_manager.add_callback(
                                                       Select(
                                                           options=[
-                                                              SelectOption(label=i[2], value=i[2]) for i in new_dates
+                                                              SelectOption(label=i, value=i) for i in new_dates
                                                           ],
                                                       ),
                                                       callback,
+                                                  ),
+                                                  self.bot.components_manager.add_callback(
+                                                      Button(label="메세지 닫기", style=4, custom_id="close", emoji="❎"
+                                                             ),
+                                                      btn_callback,
                                                   )
                                               ])
 
-        db = await aiosqlite.connect("db/db.sqlite")
-        cur = await db.execute("SELECT * FROM chulcheck")
-        res = await cur.fetchall()
-        dates = [i[2] for i in res]
-        new_dates = []
-        for i in dates:
-            if i not in new_dates:
-                new_dates.append(i)
+
         print(new_dates)
         await ctx.reply(
             "조회할 리더보드 일정을 선택해주세요.",

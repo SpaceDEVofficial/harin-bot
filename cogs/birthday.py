@@ -56,7 +56,7 @@ class InviteTracker(commands.Cog):
             cur = await database.execute("SELECT * FROM mail")
             mails = await cur.fetchall()
             check = sum(1 for _ in mails)
-            cur = await database.execute("SELECT * FROM uncheck WHERE user_id = ?", ctx.author.id)
+            cur = await database.execute("SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
             check2 = await cur.fetchone()
             if str(check) != str(check2[1]):
                 mal = discord.Embed(
@@ -165,12 +165,13 @@ class InviteTracker(commands.Cog):
     async def setup_birthday(self, ctx):
         await self.BirthdayManager.connect_to_database(self.bot.db, ["birthdays"])
         questions = [
-            "태어난 연도는 언제인가요?",
-            "태어난 달은 언제인가요?",
-            "태어난 일은 언제인가요?",
-            "시간대는 뭔가요? 목록: https://gist.github.com/heyalexej/8bf688fd67d7199be4a1682b3eec7568"
+            f"{ctx.author.mention}, 태어난 연도는 언제인가요? 예시) 2000",
+            f"{ctx.author.mention}, 태어난 달은 언제인가요? 예시) 10",
+            f"{ctx.author.mention}, 태어난 일은 언제인가요? 예시) 2",
+            f"{ctx.author.mention}, 시간대는 뭔가요? 목록: https://gist.github.com/heyalexej/8bf688fd67d7199be4a1682b3eec7568"
             "\n또는 다음 링크에 접속해서 알아볼 수 있어요.: "
-            "http://scratch.andrewl.in/timezone-picker/example_site/openlayers_example.html",
+            "http://scratch.andrewl.in/timezone-picker/example_site/openlayers_example.html"
+            "\n한국이면 `Asia/Seoul` 입력해주세요!",
         ]
         # BirthdayManager uses pytz to save timezones and not raw UTC offsets, why?
         # well, simply, using UTC offsets will result in a lot of confusion. The user might pass an incorrect UTC offset
