@@ -90,7 +90,9 @@ class invitetracker(commands.Cog):
         if not template:
             await ctx.send("해당하는 템플릿을 찾지못했어요.")
             return
-
+        if template.info.guild != ctx.guild.id:
+            await ctx.send("다른 서버의 템플릿을 삭제할 수 없어요!")
+            return
         partial_template = await template.delete()
         await ctx.send(f"다음ID`{partial_template.info.template_id}`의 템플릿을 삭제했어요!")
 
@@ -160,15 +162,80 @@ class invitetracker(commands.Cog):
         )
         if id == None:
             templates = await self.TemplateManager.get_templates(ctx.guild)
-            print(templates)
-            #await ctx.send(templates[1])
+            em = discord.Embed(
+                title=f"템플릿 목록 • 총 {len(templates)}개 등록되어있어요.",
+                description="여러 서버가 올린 템플릿으로 쉽게 서버를 구성해보세요!😉\n사용하실려면 요청자님이 관리자 권한이 있어야해요.",
+                colour=discord.Colour.random()
+            )
+            for i in templates:
+                text_channels = [j.name for j in i.text_channels[:5]]
+                text_channels_list = "\n".join(text_channels)
+                voice_channels = [j.name for j in i.voice_channels[:5]]
+                voice_channels_list = "\n".join(voice_channels)
+                category_channels = [j.name for j in i.categories[:5]]
+                category_channels_list = "\n".join(category_channels)
+                em.add_field(
+                    name=f"서버: {ctx.guild}",
+                    value=f"""
+```fix
+템플릿ID - {i.info.template_id}
+
+텍스트 채널들({len(i.text_channels)}개)
+{text_channels_list}
+...
+
+음성 채널들({len(i.voice_channels)}개)
+{voice_channels_list}
+...
+
+카테고리들({len(i.categories)}개)
+{category_channels_list}
+...
+
+적용하기 - 하린아 템플릿사용 {i.info.template_id}
+```
+                            """
+                )
+            await ctx.reply(embed=em)
         else:
             template = await self.TemplateManager.get_template(id)
             if not template:
                 await ctx.send("해당하는 템플릿을 찾지 못했어요.")
                 return
+            em = discord.Embed(
+                title=f"템플릿 상세.",
+                description="여러 서버가 올린 템플릿으로 쉽게 서버를 구성해보세요!😉\n사용하실려면 요청자님이 관리자 권한이 있어야해요.",
+                colour=discord.Colour.random()
+            )
+            text_channels = [j.name for j in template.text_channels[:5]]
+            text_channels_list = "\n".join(text_channels)
+            voice_channels = [j.name for j in template.voice_channels[:5]]
+            voice_channels_list = "\n".join(voice_channels)
+            category_channels = [j.name for j in template.categories[:5]]
+            category_channels_list = "\n".join(category_channels)
+            em.add_field(
+                name=f"서버: {self.bot.get_guild(template.info.guild)}",
+                value=f"""
+```fix
+템플릿ID - {id}
 
-            await ctx.send(f"다음의 템플릿을 찾았어요: {template}")
+텍스트 채널들({len(template.text_channels)}개)
+{text_channels_list}
+...
+
+음성 채널들({len(template.voice_channels)}개)
+{voice_channels_list}
+...
+
+카테고리들({len(template.categories)}개)
+{category_channels_list}
+...
+
+적용하기 - 하린아 템플릿사용 {id}
+```
+                        """
+            )
+            await ctx.reply(content="다음의 템플릿을 찾았어요",embed=em)
     @commands.command(name="템플릿등록")
     @commands.has_permissions(administrator=True)
     async def create_template(self,ctx):
@@ -185,8 +252,10 @@ class invitetracker(commands.Cog):
         )
         # Again, you should check permissions here to make sure this isn't abused.
         # You can also get all the templates a guild has, using TemplateManager.get_templates
+        msg = await ctx.reply("등록중이에요! 채널수와 역할수에 따라 오래걸릴 수도있어요")
         template = await self.TemplateManager.create_template(ctx.guild)
-        await ctx.send(f"성공적으로 템플릿을 등록했어요! ID - `{template.info.template_id}`")
+        await msg.edit(f"성공적으로 템플릿을 등록했어요! ID - `{template.info.template_id}`")
+
 
 def setup(bot):
     bot.add_cog(invitetracker(bot))

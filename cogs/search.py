@@ -1,7 +1,6 @@
 import asyncio
 import datetime
 import os
-
 import aiosqlite
 import discord
 import neispy.error
@@ -12,7 +11,6 @@ from pycord_components import (
     SelectOption,
     Interaction
 )
-
 
 class Search(commands.Cog):
     def __init__(self, bot):
@@ -126,7 +124,6 @@ class Search(commands.Cog):
                     ),
                 ],
             )
-            print(many_msg.id)
             try:
                 interaction = await self.bot.wait_for("select_option", check=lambda i: i.user.id == ctx.author.id and i.message.id == many_msg.id, timeout=30)
                 value = interaction.values[0]
@@ -134,7 +131,144 @@ class Search(commands.Cog):
             except asyncio.TimeoutError:
                 await many_msg.delete()
                 return
-            print(value)
+            for i in scinfo:
+                if i.SD_SCHUL_CODE == value:
+                    ae = i.ATPT_OFCDC_SC_CODE  # 교육청코드
+                    se = i.SD_SCHUL_CODE  # 학교코드
+                    diet_dict = {
+                        "1": "조식",
+                        "2": "중식",
+                        "3": "석식"
+                    }
+
+                    async def callback(interaction: Interaction):
+                        values = interaction.values[0]
+                        print(values)
+                        if interaction.user.id == ctx.author.id:
+                            try:
+                                scmeal = await neis.mealServiceDietInfo(ae, se, MLSV_YMD=dates, MMEAL_SC_CODE=values)
+                            except neispy.error.DataNotFound:
+                                await interaction.send(f"선택하신 `{diet_dict[values]}`의 메뉴를 찾을 수 없어요..")
+                                return
+                            meal = scmeal[0].DDISH_NM.replace("<br/>", "\n")
+                            em = discord.Embed(
+                                title=f"{i.SCHUL_NM} | {diet_dict[values]}",
+                                description=f"```fix\n{meal}```"
+                            )
+                            await interaction.edit_origin(embed=em, components=[
+                                self.bot.components_manager.add_callback(
+                                    Select(
+                                        options=[
+                                            SelectOption(label="조식", value="1", emoji="🌅"),
+                                            SelectOption(label="중식", value="2", emoji="☀"),
+                                            SelectOption(label="석식", value="3", emoji="🌙")
+                                        ],
+                                    ),
+                                    callback,
+                                )
+                            ])
+
+                    await many_msg.delete()
+                    await ctx.reply(
+                        "조회할 급식을 선택해주세요.",
+                        components=[
+                            self.bot.components_manager.add_callback(
+                                Select(
+                                    options=[
+                                        SelectOption(label="조식", value="1", emoji="🌅"),
+                                        SelectOption(label="중식", value="2", emoji="☀"),
+                                        SelectOption(label="석식", value="3", emoji="🌙")
+                                    ],
+                                ),
+                                callback,
+                            )
+                        ]
+                    )
+        else:
+            ae = scinfo[0].ATPT_OFCDC_SC_CODE  # 교육청코드
+            se = scinfo[0].SD_SCHUL_CODE  # 학교코드
+            diet_dict = {
+                "1": "조식",
+                "2": "중식",
+                "3": "석식"
+            }
+
+            async def callback(interaction: Interaction):
+                values = interaction.values[0]
+                print(values)
+                if interaction.user.id == ctx.author.id:
+                    try:
+                        scmeal = await neis.mealServiceDietInfo(ae, se, MLSV_YMD=dates, MMEAL_SC_CODE=values)
+                    except neispy.error.DataNotFound:
+                        await interaction.send(f"선택하신 `{diet_dict[values]}`의 메뉴를 찾을 수 없어요..")
+                        return
+                    meal = scmeal[0].DDISH_NM.replace("<br/>", "\n")
+                    em = discord.Embed(
+                        title=f"{scinfo[0].SCHUL_NM} | {diet_dict[values]}",
+                        description=f"```fix\n{meal}```"
+                    )
+                    await interaction.edit_origin(embed=em, components=[
+                        self.bot.components_manager.add_callback(
+                            Select(
+                                options=[
+                                    SelectOption(label="조식", value="1", emoji="🌅"),
+                                    SelectOption(label="중식", value="2", emoji="☀"),
+                                    SelectOption(label="석식", value="3", emoji="🌙")
+                                ],
+                            ),
+                            callback,
+                        )
+                    ])
+
+            await msg.delete()
+            await ctx.reply(
+                "조회할 급식을 선택해주세요.",
+                components=[
+                    self.bot.components_manager.add_callback(
+                        Select(
+                            options=[
+                                SelectOption(label="조식", value="1", emoji="🌅"),
+                                SelectOption(label="중식", value="2", emoji="☀"),
+                                SelectOption(label="석식", value="3", emoji="🌙")
+                            ],
+                        ),
+                        callback,
+                    )
+                ]
+            )
+
+    @main_school.command(name="시간표")
+    async def school_schedule(self, ctx, school=None, dates=None):
+        if school is None:
+            return await ctx.reply("학교명을 입력해주세요!")
+        if dates is None:
+            now = datetime.datetime.now()
+            dates = f"{now.year}{now.month}{now.day}"
+        msg = await ctx.reply("검색중이니 조금만 기다려주세요! <a:loading:888625946565935167>")
+        neis = Neispy(KEY=os.getenv("NEIS_TOKEN"))
+        scinfo = await neis.schoolInfo(SCHUL_NM=school)
+        if len(scinfo) >= 2:
+            await msg.delete()
+            many_msg = await ctx.reply(
+                f"학교명이 같은 학교가 `{len(scinfo[:25])}`개 있어요.\n아래에서 검색하시려는 학교를 선택해주세요.",
+                components=[
+                    Select(
+                        placeholder="학교를 선택해주세요.",
+                        options=[
+                            SelectOption(label=i.SCHUL_NM, value=i.SD_SCHUL_CODE,
+                                         description="지역 - {}".format(i.LCTN_SC_NM), emoji="🏫") for i in scinfo[:25]
+                        ],
+                    ),
+                ],
+            )
+            try:
+                interaction = await self.bot.wait_for("select_option", check=lambda
+                    i: i.user.id == ctx.author.id and i.message.id == many_msg.id, timeout=30)
+                value = interaction.values[0]
+                # stamp = str(time.mktime(datetime.datetime.strptime(value, '%Y-%m-%d %H:%M:%S').timetuple()))[:-2]
+            except asyncio.TimeoutError:
+                await many_msg.delete()
+                return
             for i in scinfo:
                 if i.SD_SCHUL_CODE == value:
                     ae = i.ATPT_OFCDC_SC_CODE  # 교육청코드

@@ -37,6 +37,7 @@ class general(commands.Cog):
 • 6페이지 - 학교검색 🏫
 • 7페이지 - 출석체크 📅
 • 8페이지 - 템플릿 🧩
+• 9페이지 - 게임 🎮
 
 [하린봇 초대](https://discord.com/api/oauth2/authorize?client_id=893841721958469703&permissions=8&scope=bot)
 [서포트서버](https://discord.gg/Jk6VRvsnqa)
@@ -45,7 +46,7 @@ class general(commands.Cog):
         )
         main.set_thumbnail(url=self.bot.user.avatar_url)
         main.set_image(url="https://media.discordapp.net/attachments/889514827905630290/896359450544308244/37cae031dc5a6c40.png")
-        main.set_footer(text=f"1 / 8페이지",icon_url=ctx.author.avatar_url)
+        main.set_footer(text=f"1 / 9페이지",icon_url=ctx.author.avatar_url)
 
         manage = discord.Embed(
             title="서버 관리 ⚖",
@@ -86,7 +87,7 @@ class general(commands.Cog):
         manage.add_field(name="하린아 서버공지 #채널 내용",
                          value="```\n지정한 채널에 입력한 내용의 공지사항글을 올려요.\n```",
                          inline=False)
-        manage.set_footer(text=f"2 / 8페이지",icon_url=ctx.author.avatar_url)
+        manage.set_footer(text=f"2 / 9페이지",icon_url=ctx.author.avatar_url)
 
         util = discord.Embed(
             title="도구 🧰",
@@ -135,7 +136,7 @@ class general(commands.Cog):
             value="```\n전체 옵션을 사용하지않으면 수신된 메일을 보여주고 사용하면 모든 메일을 볼 수 있어요!\n```",
             inline=False
         )
-        util.set_footer(text=f"3 / 8페이지",icon_url=ctx.author.avatar_url)
+        util.set_footer(text=f"3 / 9페이지",icon_url=ctx.author.avatar_url)
 
         music = discord.Embed(
             title="뮤직 🎶",
@@ -234,7 +235,7 @@ class general(commands.Cog):
             value="```\n현재 접속한 음성채널에서 노래를 멈추고 나가요.\n```",
             inline=False
         )
-        music.set_footer(text=f"4 / 8페이지",icon_url=ctx.author.avatar_url)
+        music.set_footer(text=f"4 / 9페이지",icon_url=ctx.author.avatar_url)
 
         birthday = discord.Embed(
             title="생일 🎉",
@@ -282,7 +283,7 @@ class general(commands.Cog):
             value="```\n학교급식을 조회해볼 수 있는 명령어에요!\n```",
             inline=False
         )
-        school.set_footer(text=f"6 / 8페이지",icon_url=ctx.author.avatar_url)
+        school.set_footer(text=f"6 / 9페이지",icon_url=ctx.author.avatar_url)
 
         chulcheck = discord.Embed(
             title="출석체크 📅",
@@ -302,7 +303,7 @@ class general(commands.Cog):
             value="```\n출석체크 순위표를 확인할 수 있어요!\n```",
             inline=False
         )
-        chulcheck.set_footer(text=f"7 / 8페이지", icon_url=ctx.author.avatar_url)
+        chulcheck.set_footer(text=f"7 / 9페이지", icon_url=ctx.author.avatar_url)
         template = discord.Embed(
             title="템플릿 🧩",
             description="서버 템플릿에 관련한 명령어를 확인해보세요.\n등록하게된다면 __서버명과 채널들의 이름이 공개되는것에 동의__하게 됩니다.",
@@ -333,9 +334,26 @@ class general(commands.Cog):
             value="```\n현재 길드를 템플릿화해요.어드민 권한이 있어야해요.\n```",
             inline=False
         )
-        template.set_footer(text="8 / 8페이지",icon_url=ctx.author.avatar_url)
+        template.set_footer(text="8 / 9페이지",icon_url=ctx.author.avatar_url)
 
-        embeds = [main,manage,util,music,birthday,school,chulcheck,template]
+        game = discord.Embed(
+            title="게임 🎮",
+            description="게임과 관련한 명령어를 확인해보세요.\n게임플레이를 하게된다면 __유저명이 공개되는것에 동의__하게 됩니다.\n끝말잇기는 끝봇의 [오픈소스](https://github.com/janu8ry/kkutbot)를 사용하였습니다.",
+            colour=discord.Colour.random()
+        )
+        game.add_field(
+            name="하린아 끝말잇기",
+            value="```\n저와 또는 길드유저와 함께 끝말잇기를 해요.\n```",
+            inline=False
+        )
+        game.add_field(
+            name="하린아 끝말잇기 리더보드",
+            value="```\n끝말잇기 리더보드를 볼수있어요.\n```",
+            inline=False
+        )
+        game.set_footer(text="9 / 9페이지", icon_url=ctx.author.avatar_url)
+
+        embeds = [main,manage,util,music,birthday,school,chulcheck,template,game]
         desc = {
             "메인 페이지": "목차가 있는 메인페이지",
             "서버 관리": "서버 관리 명령어가 있는 페이지.",
@@ -344,7 +362,8 @@ class general(commands.Cog):
             "생일": "생일 명령어가 있는 페이지.",
             "학교검색": "학교검색 명령어가 있는 페이지.",
             "출석체크": "출석체크 명령어가 있는 페이지.",
-            "템플릿":"템플릿 명령어가 있는 페이지."
+            "템플릿":"템플릿 명령어가 있는 페이지.",
+            "게임": "게임 명령어가 있는 페이지."
         }
         e = Paginator(
             client=self.bot.components_manager,
