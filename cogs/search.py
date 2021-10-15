@@ -11,7 +11,10 @@ from pycord_components import (
     SelectOption,
     Interaction
 )
-
+from Naver_Api.Api import Naver
+from dotenv import load_dotenv
+load_dotenv(verbose=True)
+N = Naver(os.getenv("NAVER_CLIENT"),os.getenv("NAVER_SECRET"))
 class Search(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -375,6 +378,173 @@ class Search(commands.Cog):
                 ]
             )
 
+    @commands.command(name="단축")
+    async def shorturl(self, ctx, *, orgurl):
+        res = await N.ShortUrl(url=orgurl)
+        print(res)
+        if res["code"] == '200':
+            embed = discord.Embed(title="단축성공! ✅")
+            if len(orgurl) > 100:
+                call_url = f'{orgurl[:100]}...'
+            else:
+                call_url = orgurl
+            embed.add_field(name=f"요청한 원본링크: {call_url}", value="** **", inline=False)
+            embed.add_field(name=f"단축된 링크: {res['result']['url']}", value="\n** **", inline=False)
+            embed.add_field(name="단축된 링크QR이미지", value="** **", inline=False)
+            embed.set_image(url=f"{res['result']['url']}.qr")
+            await ctx.reply(embed=embed)
+        else:
+            embed = discord.Embed(title=f"ERROR..단축실패 ❌\n에러코드: {res['code']}",description="에러메시지: " + res["message"])
+            if len(orgurl) > 100:
+                call_url = f'{orgurl[:100]}...'
+            else:
+                call_url = orgurl
+            embed.add_field(name=f"요청한 원본링크: {call_url}", value="** **", inline=False)
+            await ctx.reply(embed=embed)
+
+    @commands.command(name="영화검색")
+    async def search_movie(self, ctx, *, query):
+        global emoji_star, ST_AR1, AC
+        a = await N.Movie(query=query)
+        print(a)
+        embed = discord.Embed(colour=discord.Colour.blue())
+        num = 1
+        for i in a["items"][:3]:
+            director = i["director"]
+            direct = str(director).replace("|", "\n")
+            actor = i["actor"]
+            act = str(actor).replace("|", "\n")
+            if i["subtitle"] == '':
+                sub = 'ERROR! (정보없음)'
+            else:
+                sub = i["subtitle"]
+            title = i["title"]
+            tit = title.replace("<b>", "")
+            ti = tit.replace("</b>", "")
+            embed.add_field(name=f'#{str(num)}\n제목: **{ti}({sub})**', value='** **', inline=False)
+            embed.add_field(name="개봉일", value=i["pubDate"])
+            dire = f'{act[:10]}...'
+            num += 1
+
+            star = i["userRating"]
+            STAR1 = star[:1]
+            STAR2 = star[2:3]
+            if int(STAR2) >= 5:
+                ST_AR1 = int(STAR1) + 1
+                print(ST_AR1)
+            elif int(STAR2) <= 4:
+                ST_AR1 = int(STAR1) + 0
+                print(ST_AR1)
+
+            if ST_AR1 == 0:
+                emoji_star = '☆☆☆☆☆'
+                print('0')
+            elif ST_AR1 == 1 or ST_AR1 == 2:
+                emoji_star = '★☆☆☆☆'
+                print('1')
+            elif ST_AR1 == 3 or ST_AR1 == 4:
+                emoji_star = '★★☆☆☆'
+                print('2')
+            elif ST_AR1 == 5 or ST_AR1 == 6:
+                emoji_star = '★★★☆☆'
+                print('3')
+            elif ST_AR1 == 7 or ST_AR1 == 8:
+                emoji_star = '★★★★☆'
+                print('4')
+            elif ST_AR1 == 9 or ST_AR1 == 10:
+                emoji_star = '★★★★★'
+                print('5')
+            print(STAR1)
+            embed.add_field(name="평점", value=f'{STAR1}.{STAR2}점, 별점: {emoji_star}({ST_AR1}점)')
+            embed.add_field(name="감독", value=dire, inline=False)
+            if act == '':
+                embed.add_field(name="배우", value='ERROR! (정보없음)', inline=False)
+            else:
+                embed.add_field(name="배우", value=act, inline=False)
+                if len(act) > 15:
+                    embed.add_field(name="배우", value=f'{act[:15]}...', inline=False)
+            embed.add_field(name="바로가기", value=f"[자세한 내용 보러가기]({i['link']})\n[포스터보러가기]({i['image']})\n{'-----' * 10}")
+            embed.set_footer(text='별점은 소숫점1의 자리에서 반올림한 값으로 계산합니다.')
+            print(i["userRating"])
+        await ctx.send(embed=embed)
+
+    @commands.command(name="뉴스검색")
+    async def search_news(self, ctx, *, search):
+        a = await N.News(query=search)
+        print(a)
+        embed = discord.Embed(title='뉴스 검색결과!')
+        num = 0
+        for i in a["items"][:3]:
+            title = i["title"]
+            tit = str(title).replace("<b>", "")
+            ti = tit.replace("</b>", "")
+            T = ti.replace("&quot;", "")
+            link = i["originallink"]
+            des = i["description"]
+            d_e = des.replace("</b>", "")
+            d = d_e.replace("<b>", "")
+            D = d.replace("&quot;", "")
+            DE = D.replace("&amp;", "")
+            num += 1
+            '''b = str(a["total"])
+            c = b[:1]
+            d = b[2:5]
+            e = b[6:9]'''
+            embed.add_field(name=f"#{str(num)}", value=f'기사제목- {str(T)}', inline=False)
+            embed.add_field(name="미리보기", value=str(DE), inline=False)
+            embed.add_field(name="게시일", value=i["pubDate"][:-6])
+            embed.add_field(name="** **", value=f"[자세한 내용 보러가기](<{str(link)}>)\n{'-----' * 10}", inline=False)
+            embed.set_footer(text=f'검색된 뉴스 기사 총갯수: {a["total"]}개')
+        await ctx.send(embed=embed)
+        # await ctx.send(f'{title}\n{link}\n{des}')
+
+    @commands.command(name="카페검색")
+    async def search_cafe(self, ctx, *, search):
+        a = await N.Cafe(query=search)
+        print(a)
+        embed = discord.Embed(title=f'카페 게시글 검색결과!\n{"-----" * 10}')
+        num = 0
+        for i in a["items"][:3]:
+            title = i["title"]
+            tit = str(title).replace("<b>", "")
+            ti = tit.replace("</b>", "")
+            T = ti.replace("&quot;", "")
+            link = i["link"]
+            des = i["description"]
+            d_e = des.replace("</b>", "")
+            d = d_e.replace("<b>", "")
+            D = d.replace("&quot;", "")
+            DE = D.replace("&amp;", "")
+            num += 1
+            embed.add_field(name=f"#{str(num)}\n제목", value=str(T), inline=False)
+            embed.add_field(name="미리보기", value=str(DE), inline=False)
+            embed.add_field(name="바로가기", value=f"[자세한 내용 보러가기](<{str(link)}>)", inline=False)
+            embed.set_footer(text=f'검색된 카페 게시글 총갯수: {a["total"]}개')
+        await ctx.send(embed=embed)
+
+    @commands.command(name="웹검색")
+    async def search_web(self, ctx, *, search):
+        a = await N.Webkr(query=search)
+        print(a)
+        embed = discord.Embed(title=f'네이버 검색결과!\n{"-----" * 10}')
+        num = 0
+        for i in a["items"][:3]:
+            title = i["title"]
+            tit = str(title).replace("<b>", "")
+            ti = tit.replace("</b>", "")
+            T = ti.replace("&quot;", "")
+            link = i["link"]
+            des = i["description"]
+            d_e = des.replace("</b>", "")
+            d = d_e.replace("<b>", "")
+            D = d.replace("&quot;", "")
+            DE = D.replace("&amp;", "")
+            num += 1
+            embed.add_field(name=f"#{str(num)}\n제목", value=str(T), inline=False)
+            embed.add_field(name="미리보기", value=str(DE), inline=False)
+            embed.add_field(name="바로가기", value=f"[자세한 내용 보러가기](<{str(link)}>)", inline=False)
+            embed.set_footer(text=f'검색된 총갯수: {a["total"]}개')
+        await ctx.send(embed=embed)
 
 def setup(bot):
     bot.add_cog(Search(bot))

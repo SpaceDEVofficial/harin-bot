@@ -135,6 +135,8 @@ class MultiGame(GameBase):
             await self.msg.delete()
         except discord.NotFound:
             pass
+        except discord.Forbidden:
+            pass
         self.msg = await self.msg.channel.send(embed=embed)
 
 
