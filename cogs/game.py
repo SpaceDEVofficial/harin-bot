@@ -37,7 +37,7 @@ class SoloGame(GameBase):
         self.used_words = [self.bot_word]
 
     async def send_info_embed(self, _msg: Union[discord.Message, KkutbotContext],
-                              desc: str = "15초 안에 단어를 이어주세요!") -> discord.Message:
+                              desc: str = "10초 안에 단어를 이어주세요!") -> discord.Message:
         _embed = discord.Embed(title=f"끝말잇기 솔로 게임",
                                description=f"현재 점수: `{self.score}` 점", color=config('colors.help'))
         _embed.add_field(name="단어", value=f"```yaml\n{self.bot_word} ({' / '.join(get_DU(self.bot_word))})```",
