@@ -1,19 +1,20 @@
 import asyncio
 import operator
 import random
+import string
 import time
+from datetime import datetime
 from typing import Union
 import aiosqlite
 import discord
 from discord.ext import commands
-
 from ext.core import  KkutbotContext
 from ext.utils import (choose_first_word, get_DU,
                        get_word)
 from ext.config import config
 from pycord_components import (
     Button,
-    ButtonStyle
+    ButtonStyle, Interaction, Select, SelectOption
 )
 class GameBase:
     """Base Game Model for many modes."""
@@ -195,6 +196,85 @@ class Game(commands.Cog, name="게임"):
 
     def __init__(self, bot):
         self.bot = bot
+        self.data = {}
+
+    def pick(self, guild, m, p, d):
+        def seq(value):
+            count = 0
+            for u in dummy:
+                if value == u:
+                    return count
+                count += 1
+
+        def select(num, role):
+            for i in range(num):
+                value = random.choice(dummy)
+                users[role].append(value)
+                del dummy[seq(value)]
+
+        users = self.data[guild]
+        dummy = users['users'][:]
+        select(m, 'mafia')
+        select(p, 'police')
+        select(d, 'doctor')
+        users['citizen'] = dummy
+
+    async def end(self, winner, data, thread, msg):
+        db = await aiosqlite.connect("db/db.sqlite")
+        def gen():
+            return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(5))
+
+        embed = discord.Embed(title="게임 종료!", color=0x5865F2, description='')
+        if winner == 'citizen':
+            embed.description = "모든 마피아가 사망하였습니다. 시민팀이 승리하였습니다."
+        else:
+            embed.description = "모든 시민이 사망하였습니다. 마피아가 승리하였습니다."
+
+        codes = [c[0] for c in await (await db.execute('SELECT * FROM mafia')).fetchall()]
+        code = gen()
+        while code in codes:
+            code = gen()
+
+        data['winner'] = winner
+        await db.execute(f'INSERT INTO mafia VALUES ("{code}", "{thread.guild.id}", "{str(data)}")')
+        await db.commit()
+
+        try:
+            doctor = self.bot.get_user(data['doctor'][0]).mention
+        except IndexError:
+            doctor = '`없음`'
+
+        embed.add_field(name="플레이어",
+                        value=f"마피아: {', '.join([self.bot.get_user(m).mention for m in data['mafia']])}\n"
+                              f"경찰: {self.bot.get_user(data['police'][0]).mention}\n"
+                              f"의사: {doctor}\n"
+                              f"시민: {', '.join([self.bot.get_user(c).mention for c in data['citizen']])}\n\n"
+                              f"이 게임은 `하린아 다시보기 {code}` 명령어를 이용하여 다시 볼 수 있습니다.")
+
+        await thread.purge(limit=None)
+        await thread.send(embed=embed)
+        await msg.edit(embed=embed)
+
+        for u in data['users']:
+            user = self.bot.get_user(u)
+            await thread.parent.set_permissions(user, send_messages_in_threads=True)
+
+        del self.data[thread.parent.id]
+        await asyncio.sleep(60)
+        await thread.delete()
+
+    async def check_finish(self, ctx, dead):
+        data = self.data[ctx.channel.id]
+        for u in data['mafia']:
+            if u == dead:
+                data['mafia-count'] -= 1
+                break
+
+        if len(data['users']) - (data['mafia-count'] + len(data['dead'])) <= data['mafia-count']:
+            return 'mafia'
+        elif data['mafia-count'] == 0:
+            return 'citizen'
+        return False
 
 
 
@@ -420,6 +500,354 @@ class Game(commands.Cog, name="게임"):
             description=f"누가 끝말잇기 고수일까요?```fix\n{leaderboard}```"
         )
         await ctx.reply(embed= em)
+
+    @commands.command(aliases=['마피아'])
+    async def mafia(self, ctx):
+        global value, pending_customid,until
+        try:
+            self.data[ctx.channel.id]
+        except KeyError:
+            pass
+        else:
+            embed = discord.Embed(title="Mafia", color=0xED4245,
+                                   description="이미 이 채널에서 게임이 진행 중입니다.")
+            return await ctx.reply(embed=embed)
+        start_embed = discord.Embed(title="Mafia", color=0x5865F2,
+                                     description="게임을 시작하시겠습니까?")
+        start_msg = await ctx.reply(embed=start_embed, components=[Button(label="시작",style=3,custom_id="start"),
+                                                                   Button(label="취소",style=4,custom_id="cancel")])
+        try:
+            interaction:Interaction = await self.bot.wait_for("button_click", check = lambda i: i.user.id == ctx.author.id and i.message.id == start_msg.id,timeout=60)
+            value = interaction.custom_id
+            print(value)
+            if value == "cancel":
+                await start_msg.delete()
+                embed = discord.Embed(title="Mafia", color=0xED4245,
+                                      description="게임을 취소하셨습니다.")
+                return await ctx.reply(embed=embed)
+        except asyncio.TimeoutError:
+            await start_msg.delete()
+            embed = discord.Embed(title="Mafia", color=0xED4245,
+                                   description="시간이 초과되었습니다. 다시 시도해주세요.")
+            return await ctx.reply(embed=embed)
+
+
+
+
+        data = self.data[ctx.channel.id] = {}
+        users = data['users'] = []
+        data['mafia'], data['police'], data['doctor'], data['citizen'], data['dead'] = [], [], [], [], []
+        users.append(ctx.author.id)
+        pending_embed = discord.Embed(title="Mafia", color=0x5865F2,
+                                      description=f"{ctx.author.mention}님이 마피아 게임을 시작하셨습니다. "
+                                                  f"참가를 희망하시는 분은 메시지 하단의 버튼을 클릭해주세요.\n")
+        pending_embed.add_field(name="참가자", value=f"`{len(users)}명`")
+
+        async def pending_callback(interaction: Interaction):
+            pending_customid = interaction.custom_id
+            if pending_customid == "join":
+                if interaction.user.id not in users:
+                    users.append(interaction.user.id)
+                    pending_embed.set_field_at(0, name="참가자", value=f"`{len(users)}명`")
+                    await pending_msg.edit(embed=pending_embed)
+                    await interaction.respond(content='게임에 참가하셨습니다.', ephemeral=True)
+
+        await start_msg.delete()
+        pending_msg = await ctx.send(embed=pending_embed, components=[self.bot.components_manager.add_callback(Button(label="참가하기",style=1,custom_id="join"),pending_callback)])
+
+        now = datetime.timestamp(datetime.now())
+        until = now + 60
+        await asyncio.sleep(60)
+        user_count = len(users)
+        if user_count < 4:
+            del self.data[ctx.channel.id]
+            await pending_msg.delete()
+            embed = discord.Embed(title="Mafia", color=0xED4245,
+                                  description="인원 수 미달로 게임이 취소되었습니다.")
+            return await ctx.reply(embed=embed)
+
+        if user_count >= 24:
+            del self.data[ctx.channel.id]
+            await pending_msg.delete()
+            embed = discord.Embed(title="Mafia", color=0xED4245,
+                                  description="인원 수 초과로 게임이 취소되었습니다.")
+            return await ctx.reply(embed=embed)
+        try:
+            thread = await ctx.guild.create_text_channel(name='마피아')
+        except discord.Forbidden:
+            return await ctx.reply("채널 생성 권한이 없어요! 채널 관리권한을 부여해주세요.")
+        await thread.set_permissions(ctx.guild.default_role,read_messages=False)
+        for u in users:
+            user = self.bot.get_user(u)
+            await thread.set_permissions(user, read_messages=True)
+        part_embed = discord.Embed(title="Mafia", color=0x5865F2,
+                                   description=f"`{len(users)}명`이 게임에 참가합니다."
+                                               f"\n참가자: {', '.join([f'<@{u}>' for u in users])}\n\n"
+                                               f"잠시 후 게임이 시작됩니다.")
+        part_msg = await thread.send(' '.join([f'<@{u}>' for u in users]), embed=part_embed)
+        await asyncio.sleep(3)
+
+        async def checkjob_callback(interaction: Interaction):
+            embed = discord.Embed(title="Mafia", color=0x5865F2, description="")
+            if interaction.user.id in data['doctor']:
+                embed.description = "당신은 `의사`입니다. 매일 밤 마피아로부터 죽임을 당하는 시민을 살릴 수 있습니다."
+            elif interaction.user.id in data['police']:
+                embed.description = "당신은 `경찰`입니다. 매일 밤 선택한 유저가 마피아인지 아닌지를 확인할 수 있습니다."
+            elif interaction.user.id in data['mafia']:
+                embed.description = "당신은 `마피아`입니다. 매일 밤 한 시민을 살해할 수 있습니다."
+            elif interaction.user.id in data['citizen']:
+                embed.description = "당신은 `시민`입니다. 건투를 빕니다."
+            else:
+                embed.description = "당신은 게임 참가자가 아닙니다."
+            await interaction.respond(embed=embed, ephemeral=True)
+        if user_count == 4:
+            self.pick(ctx.channel.id, 1, 1, 0)
+        elif user_count == 5:
+            self.pick(ctx.channel.id, 1, 1, 1)
+        elif user_count in [6, 7]:
+            self.pick(ctx.channel.id, 2, 1, 1)
+        else:
+            self.pick(ctx.channel.id, 3, 1, 1)
+
+        roles_embed = discord.Embed(title="직업이 배정되었습니다.", color=0x5865F2,
+                                    description=f"마피아: `{len(data['mafia'])}명`\n"
+                                                f"경찰: `{len(data['police'])}명`\n"
+                                                f"의사: `{len(data['doctor'])}명`\n"
+                                                f"시민: `{len(data['citizen'])}명`\n"
+                                                f"\n메시지 하단의 버튼을 눌러 자신의 직업을 확인해주세요.\n"
+                                                f"20초 후 1일차 밤이 됩니다.")
+        await thread.send(embed=roles_embed, components=[
+            self.bot.components_manager.add_callback(Button(label="직업 확인하기", style=1),
+                                                     checkjob_callback)])
+        await asyncio.sleep(20)
+        await thread.purge(limit=None)
+        data['mafia-count'] = len(data['mafia'])
+        data['day'] = 1
+        data['days'] = {}
+        data['days'][1] = {'day': {}, 'night': {}}
+
+        while True:
+            for u in users:
+                user = self.bot.get_user(u)
+                await thread.set_permissions(user, send_messages=False,read_messages=True)
+
+            turn_night_embed = discord.Embed(title='Mafia', color=0x5865F2, description=f"밤이 되었습니다.")
+            await thread.send(embed=turn_night_embed)
+            await asyncio.sleep(0.5)
+
+            if data['day'] == 20:
+                del self.data[ctx.channel.id]
+                embed = discord.Embed(title="Mafia", color=0xED4245,
+                                      description="비정상적으로 게임이 길어져 강제로 종료되었습니다.")
+                return await ctx.reply(embed=embed)
+
+            target = data['days'][data['day']]['night']
+            target['mafia'], target['police'], target['doctor'], target['died'] = 0, 0, 0, 0
+            night = True
+            async def select_callback(interaction:Interaction):
+                if night is True:
+                    user = discord.utils.get(users, name=interaction.values[0])
+                    target = self.data['days'][self.data['day']]['night']
+
+                    if interaction.user.id in self.data['mafia']:
+                        if target['mafia'] and target['mafia'] != user.id:
+                            embed = discord.Embed(title="Mafia", color=0x5865F2,
+                                                  description=f"살해대상을 변경하였습니다.")
+                            await interaction.respond(embed=embed, ephemeral=True)
+                        target['mafia'] = user.id
+
+                    elif interaction.user.id in self.data['doctor']:
+                        target['doctor'] = user.id
+
+                    elif interaction.user.id in self.data['police'] and not target['police']:
+                        target['police'] = user.id
+                        embed = discord.Embed(title="Mafia", color=0x5865F2, description="")
+                        if user.id in self.data['mafia']:
+                            embed.description = f"{user.mention}님은 마피아입니다."
+                        else:
+                            embed.description = f"{user.mention}님은 마피아가 아닙니다."
+                        await interaction.respond(embed=embed, ephemeral=True)
+                    else:
+                        embed = discord.Embed(title="Mafia", color=0xED4245, description="이미 능력을 사용하셨습니다.")
+                        await interaction.respond(embed=embed, ephemeral=True)
+                else:
+                    vote = self.data['days'][self.data['day']]['day']
+                    embed = discord.Embed(title="Mafia", color=0x5865F2, description="")
+
+                    user = None
+                    if interaction.values[0] != '건너뛰기':
+                        user = discord.utils.get(users, name=interaction.values[0]).id
+
+                    if interaction.user.id not in vote['voted'] and user:
+                        vote['voted'].append(interaction.user.id)
+                        vote['votes'][user] += 1
+                        embed.description = f"<@{user}>님께 투표하였습니다."
+                    elif interaction.user.id not in vote['voted'] and not user:
+                        vote['voted'].append(interaction.user.id)
+                        vote['votes']['건너뛰기'] += 1
+                        embed.description = "투표 건너뛰기에 투표하였습니다."
+                    else:
+                        embed.description = "이미 투표하셨습니다."
+                    await interaction.respond(embed=embed, ephemeral=True)
+
+            async def activate_role(interaction:Interaction):
+                users = [self.bot.get_user(u) for u in data['users'] if u not in data['dead']]
+                select_options = [Select(options=[SelectOption(label=u.name,value=u.name) for u in users])]
+                if night is False:
+                    select_options.insert(0, discord.SelectOption(label='건너뛰기'))
+                embed = discord.Embed(title="Mafia", color=0x5865F2, description="")
+                if interaction.user.id in data['dead']:
+                    embed.description = "사망하셨으므로 능력을 사용할 수 없습니다."
+                elif interaction.user.id in data['citizen']:
+                    embed.description = "당신은 시민이므로 능력이 존재하지 않습니다."
+                elif interaction.user.id in data['mafia']:
+                    embed.description = "살해할 유저를 선택해주세요."
+                    return await interaction.respond(embed=embed, ephemeral=True,
+                                                                   components=self.bot.components_manager.add_callback(select_options,select_callback))
+                elif interaction.user.id in data['doctor']:
+                    embed.description = "살릴 유저를 선택해주세요."
+                    return await interaction.respond(embed=embed, ephemeral=True,
+                                                                   components=self.bot.components_manager.add_callback(select_options,select_callback))
+                elif interaction.user.id in data['police'] and self.data['day'] != 1:
+                    embed.description = "조사할 유저를 선택해주세요."
+                    return await interaction.respond(embed=embed, ephemeral=True,
+                                                                   components=self.bot.components_manager.add_callback(select_options,select_callback))
+                else:
+                    embed.description = "당신의 능력은 아직 개방되지 않았거나 게임에 참가하지 않으셨습니다."
+                await interaction.respond(embed=embed, ephemeral=True)
+
+            night_embed = discord.Embed(title=f"{data['day']}일차 - 밤", color=0x5865F2,
+                                        description=f"메시지 하단의 버튼을 눌러 능력을 사용해주세요.\n"
+                                                    f"\n30초 후 {data['day'] + 1}일차 낮이 됩니다.")
+            night_msg = await thread.send(embed=night_embed, components=[self.bot.components_manager.add_callback(Button(label="능력 사용하기",style=1),activate_role)])
+            await asyncio.sleep(30)
+            await night_msg.delete()
+            data['day'] += 1
+
+            turn_day_embed = discord.Embed(title='Mafia', color=0x5865F2, description=f"낮이 되었습니다.")
+            await thread.send(embed=turn_day_embed)
+            await asyncio.sleep(0.5)
+
+            dead_embed = discord.Embed(title=f"{data['day']}일차 - 낮", color=0x5865F2, description='')
+            if not target['mafia'] or target['doctor'] == target['mafia']:
+                dead_embed.description = "아무도 사망하지 않았습니다."
+            else:
+                target['died'] = target['mafia']
+                data['dead'].append(target['mafia'])
+                dead_embed.description = f"<@{target['mafia']}>님께서 사망하셨습니다."
+            await thread.send(embed=dead_embed)
+
+            check = await self.check_finish(ctx, target['mafia'])
+            if check:
+                return await self.end(check, data, thread, part_msg)
+
+            data['days'][data['day']] = {'day': {}, 'night': {}}
+
+            for u in data['users']:
+                if u in data['dead']:
+                    continue
+                await thread.set_permissions(self.bot.get_user(u), send_messages=True)
+
+            vote = data['days'][data['day']]['day']
+            now = datetime.timestamp(datetime.now())
+            until = int(now) + 120
+            timecallback_until = until
+            time_voted = vote['time-voted'] = []
+            #time_view = VoteTime(until, time_voted, data['users'])
+            async def time_callback(interaction: Interaction):
+                global until,timecallback_until
+                if interaction.custom_id == "up":
+                    if interaction.user.id not in time_voted and interaction.user.id in data['users']:
+                        time_voted.append(interaction.user.id)
+                        timecallback_until += 30
+                        embed = discord.Embed(title='Mafia', color=0x5865F2,
+                                              description=f"{interaction.user.mention}님께서 시간을 증가시켰습니다.")
+                        await interaction.respond(embed=embed)
+                    else:
+                        embed = discord.Embed(title='Mafia', color=0xED4245,
+                                              description="이미 시간을 증가시키셨거나 게임에 참가하지 않으셨습니다.")
+                        await interaction.respond(embed=embed, ephemeral=True)
+                if interaction.custom_id == "down":
+                    if interaction.user.id not in time_voted and interaction.user.id in data['users']:
+                        time_voted.append(interaction.user.id)
+                        timecallback_until -= 30
+                        embed = discord.Embed(title='Mafia', color=0x5865F2,
+                                              description=f"{interaction.user.mention}님께서 시간을 감소시켰습니다.")
+                        await interaction.respond(embed=embed)
+                    else:
+                        embed = discord.Embed(title='Mafia', color=0xED4245,
+                                              description="이미 시간을 감소시키셨거나 게임에 참가하지 않으셨습니다.")
+                        await interaction.respond(embed=embed, ephemeral=True)
+            time_view = [self.bot.components_manager.add_callback(Button(label="시간증가",custom_id="up",style=1),time_callback),
+                         self.bot.components_manager.add_callback(Button(label="시간감소",custom_id="down",style=4),time_callback)]
+
+            day_embed = discord.Embed(title=f"{data['day']}일차 - 낮", color=0x5865F2,
+                                      description=f"120초간 자유 토론 시간이 주어집니다.\n"
+                                                  f"메시지 하단의 버튼을 눌러 시간을 증가/단축시킬 수 있습니다.")
+            day_embed.add_field(name="남은 시간", value=f"<t:{until}:R>")
+            day_msg = await thread.send(embed=day_embed, components=time_view)
+
+            while now <= until:
+                now = datetime.timestamp(datetime.now())
+                if timecallback_until != until:
+                    until = timecallback_until
+                    day_embed.set_field_at(0, name="남은 시간", value=f"<t:{until}>")
+                    await day_msg.edit(embed=day_embed)
+                await asyncio.sleep(1)
+
+            await day_msg.delete()
+
+            vote['voted'], vote['votes'], vote['died'] = [], {}, 0
+            vote['votes']['건너뛰기'] = len(data['users']) - len(data['dead'])
+            for u in [u for u in data['users'] if u not in data['dead']]:
+                vote['votes'][u] = 0
+
+            async def vote_callback(interaction:Interaction):
+                global night
+                users = [self.bot.get_user(u) for u in data['users'] if u not in data['dead']]
+                select_options = [Select(options=[SelectOption(label=u.name, value=u.name) for u in users])]
+                if interaction.user.id in data['dead']:
+                    embed = discord.Embed(title="Mafia", color=0xED4245, description="사망하셨으므로 투표할 수 없습니다.")
+                    await interaction.respond(embed=embed, ephemeral=True)
+                elif interaction.user.id not in data['users']:
+                    embed = discord.Embed(title="Mafia", color=0xED4245, description="게임에 참가하지 않으셨으므로 투표할 수 없습니다.")
+                    await interaction.respond(embed=embed, ephemeral=True)
+                embed = discord.Embed(title="Mafia", color=0x5865F2, description="투표로 죽일 유저를 선택해주세요.")
+                night = False
+                await interaction.respond(embed=embed, ephemeral=True,
+                                                               components=self.bot.components_manager.add_callback(select_options,select_callback))
+            vote_embed = discord.Embed(title=f"{data['day']}일차 - 투표", color=0x5865F2,
+                                       description=f"30초 동안 투표로 죽일 사람을 선택해주세요.")
+            await thread.send(embed=vote_embed, components=self.bot.components_manager.add_callback(Button(label="투표하기",style=1),vote_callback))
+            await asyncio.sleep(30)
+
+            for v in vote['voted']:
+                vote['votes']['건너뛰기'] -= 1
+
+            await thread.purge(limit=None)
+            total = sorted(vote['votes'].items(), key=lambda k: k[1], reverse=True)
+            vote_result = ''
+            for t in total:
+                name = t[0]
+                if t[0] != '건너뛰기':
+                    name = f'<@{t[0]}>'
+                vote_result += f'{name}: `{t[1]}표`\n'
+
+            vote_result_embed = discord.Embed(title=f"{data['day']}일차 - 투표 결과", color=0x5865F2, description='')
+            if total[0][1] == total[1][1] or total[0][0] == '건너뛰기':
+                vote_result_embed.description = "아무도 사망하지 않았습니다."
+            else:
+                vote['died'] = total[0][0]
+                data['dead'].append(total[0][0])
+                vote_result_embed.description = f"<@{total[0][0]}>님께서 사망하셨습니다."
+            vote_result_embed.add_field(name="투표 결과", value=vote_result)
+            await thread.send(embed=vote_result_embed)
+
+            check = await self.check_finish(ctx, total[0][0])
+            if check:
+                return await self.end(check, data, thread, part_msg)
+            await asyncio.sleep(1)
+
 
 
 def setup(bot):

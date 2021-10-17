@@ -24,9 +24,13 @@
 
 [하린봇 소스](https://github.com/SpaceDEVofficial/harin-bot)
 
-[사용된 끝말잇기 소스](https://github.com/janu8ry/kkutbot) - 끝봇
+- [사용된 끝말잇기 소스](https://github.com/janu8ry/kkutbot) - 끝봇
+
+- [사용된 마피아 소스](https://github.com/frin0911/Mafia-Bot)
 ```
 + 끝말잇기 게임 추가 (2021.10.14)
+
++ 마피아 게임 추가 (2021.10.17)
 ```
 
 ## 🛠️ 기능
