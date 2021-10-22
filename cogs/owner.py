@@ -6,8 +6,55 @@ from discord.ext import commands
 
 
 class Owner(commands.Cog):
-    def __init__(self, bot):
+    def __init__(self, bot:commands.Bot):
+        super().__init__()
         self.bot = bot
+
+    @commands.group(name="블랙",invoke_without_command=True)
+    async def blacklist(self,ctx:commands.Context):
+        database = await aiosqlite.connect("db/db.sqlite")
+        cur = await database.execute("SELECT * FROM blacklist WHERE user = ?", (ctx.author.id,))
+        if await cur.fetchone() == None:
+            return await ctx.reply(f"{ctx.author}님은 블랙리스트에 등록되어있지 않아요.")
+        data = await cur.fetchone()
+        await ctx.reply(f"블랙사유: {data[1]}")
+
+    @blacklist.command(name="추가")
+    @commands.is_owner()
+    async def blacklist_add(self,ctx:commands.Context,user_id:int,*,reason):
+        user = await self.bot.fetch_user(user_id)
+        database = await aiosqlite.connect("db/db.sqlite")
+        cur = await database.execute("SELECT * FROM blacklist WHERE user = ?", (user_id,))
+        datas = await cur.fetchone()
+        if datas != None:
+            return await ctx.reply(f"{user}님은 블랙리스트에 등록되어있어요.\n사유: {datas[1]}")
+        await database.execute("INSERT INTO blacklist(user,reason) VALUES (?,?)", (user_id, reason))
+        await database.commit()
+        try:
+            await user.send(f"__관리자로부터 블랙등록됨.__\n\n"
+                            f"관리자가 아래의 사유로 블랙등록하셨어요.\n\n"
+                            f"사유: \n{reason}")
+        except:
+            pass
+        await ctx.reply("등록완료!")
+
+    @blacklist.command(name="삭제")
+    @commands.is_owner()
+    async def blacklist_del(self, ctx: commands.Context, user_id: int):
+        user = await self.bot.fetch_user(user_id)
+        database = await aiosqlite.connect("db/db.sqlite")
+        cur = await database.execute("SELECT * FROM blacklist WHERE user = ?", (user_id,))
+        datas = await cur.fetchone()
+        if datas == None:
+            return await ctx.reply(f"{user}님은 블랙리스트에 등록되어있지않아요.")
+        await database.execute("DELETE FROM blacklist WHERE user = ?", (user_id,))
+        await database.commit()
+        try:
+            await user.send(f"__관리자로부터 블랙해제됨.__\n\n"
+                            f"관리자가 블랙해제하셨어요.")
+        except:
+            pass
+        await ctx.reply("해제완료!")
 
     @commands.command(name="공지")
     @commands.is_owner()
