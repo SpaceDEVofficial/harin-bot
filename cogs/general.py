@@ -342,7 +342,7 @@ class general(commands.Cog):
         )
         template.set_footer(text="8 / 9페이지",icon_url=ctx.author.avatar_url)
 
-        game = discord.Embed(
+        """game = discord.Embed(
             title="게임 🎮",
             description="게임과 관련한 명령어를 확인해보세요.\n게임플레이를 하게된다면 __유저명이 공개되는것에 동의__하게 됩니다.\n끝말잇기는 끝봇의 [오픈소스](https://github.com/janu8ry/kkutbot)를 사용하였습니다.\n마피아는 다음의 [오픈소스](https://github.com/frin0911/Mafia-Bot)를 사용하였습니다.",
             colour=discord.Colour.random()
@@ -362,9 +362,9 @@ class general(commands.Cog):
             value="```\n길드유저와 함께 마피아게임을 해요. 최소인원은 4명이고 최대인원은 23명입니다.\n```",
             inline=False
         )
-        game.set_footer(text="9 / 9페이지", icon_url=ctx.author.avatar_url)
+        game.set_footer(text="9 / 9페이지", icon_url=ctx.author.avatar_url)"""
 
-        embeds = [main,manage,util,music,birthday,school,chulcheck,template,game]
+        embeds = [main,manage,util,music,birthday,school,chulcheck,template]
         desc = {
             "메인 페이지": "목차가 있는 메인페이지",
             "서버 관리": "서버 관리 명령어가 있는 페이지.",
@@ -373,8 +373,7 @@ class general(commands.Cog):
             "생일": "생일 명령어가 있는 페이지.",
             "학교검색": "학교검색 명령어가 있는 페이지.",
             "출석체크": "출석체크 명령어가 있는 페이지.",
-            "템플릿":"템플릿 명령어가 있는 페이지.",
-            "게임": "게임 명령어가 있는 페이지."
+            "템플릿":"템플릿 명령어가 있는 페이지."
         }
         e = Paginator(
             client=self.bot.components_manager,
@@ -386,7 +385,7 @@ class general(commands.Cog):
             desc=desc)
         await e.start()
 
-    @commands.command(name="메일", help="`ㅌ메일 (전체)`로 메일을 확인합니다.")
+    @commands.command(name="메일", help="`ㅎ메일 (전체)`로 메일을 확인합니다.")
     async def read_mail(self, ctx, mode=None):
         if mode is None:
             dictcommand = await self.read_email_from_db(ctx=ctx)

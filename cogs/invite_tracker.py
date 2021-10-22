@@ -4,11 +4,12 @@ import discordSuperUtils
 from discord.ext import commands
 
 
-class InviteTracker(commands.Cog):
+class InviteTracker(commands.Cog,discordSuperUtils.CogManager.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.ImageManager = discordSuperUtils.ImageManager()
-        self.InviteTracker = discordSuperUtils.InviteTracker(self.bot)
+        self.InviteTracker = discordSuperUtils.InviteTracker(bot)
+        super().__init__()
 
     async def cog_before_invoke(self, ctx: commands.Context):
         print(ctx.command)
@@ -45,11 +46,16 @@ class InviteTracker(commands.Cog):
 
                 await ctx.send(embed=mal)
 
+    @commands.Cog.listener()
+    async def on_ready(self):
+        database = discordSuperUtils.DatabaseManager.connect(
+            await aiosqlite.connect("db/db.sqlite")
+        )
+        await self.InviteTracker.connect_to_database(database, ["invites"])
+
     @commands.Cog.listener("on_member_join")
     async def invite_tracker(self, member):
         database_one = await aiosqlite.connect("db/db.sqlite")
-        database = discordSuperUtils.DatabaseManager.connect(database_one)
-        await self.InviteTracker.connect_to_database(database, ["invites"])
         cur = await database_one.execute("SELECT * FROM invite_tracker WHERE guild = ?", (member.guild.id,))
         data = await cur.fetchone()
         if data is not None:
@@ -64,9 +70,6 @@ class InviteTracker(commands.Cog):
 
     @commands.command(name="초대정보")
     async def info(self, ctx, member: discord.Member = None):
-        database_one = await aiosqlite.connect("db/db.sqlite")
-        database = discordSuperUtils.DatabaseManager.connect(database_one)
-        await self.InviteTracker.connect_to_database(database, ["invites"])
         member = ctx.author if not member else member
         invited_members = await self.InviteTracker.get_user_info(member).get_invited_users()
 

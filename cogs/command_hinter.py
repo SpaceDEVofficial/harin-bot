@@ -17,11 +17,12 @@ class MyCommandGenerator(discordSuperUtils.CommandResponseGenerator):
         return random_chat(suggest=suggestion[0])
 
 
-class CommandHint(commands.Cog):
+class CommandHint(commands.Cog,discordSuperUtils.CogManager.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.ImageManager = discordSuperUtils.ImageManager()
-        discordSuperUtils.CommandHinter(self.bot, MyCommandGenerator())
+        discordSuperUtils.CommandHinter(bot, MyCommandGenerator())
+        super().__init__()
 
 
 def setup(bot):

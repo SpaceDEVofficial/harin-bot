@@ -9,11 +9,12 @@ import pytz
 from PIL import Image
 from discord.ext import commands
 import discordSuperUtils
-class invitetracker(commands.Cog):
+class invitetracker(commands.Cog,discordSuperUtils.CogManager.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.ImageManager = discordSuperUtils.ImageManager()
-        self.TemplateManager = discordSuperUtils.TemplateManager(self.bot)
+        self.TemplateManager = discordSuperUtils.TemplateManager(bot)
+        super().__init__()
 
     async def cog_before_invoke(self, ctx: commands.Context):
         print(ctx.command)
@@ -45,22 +46,23 @@ class invitetracker(commands.Cog):
                                     colour=ctx.author.colour)
                 await ctx.send(embed=mal)
 
+    @commands.Cog.listener()
+    async def on_ready(self):
+        database = discordSuperUtils.DatabaseManager.connect(
+            await aiosqlite.connect("db/db.sqlite")
+        )
+        await self.TemplateManager.connect_to_database(database,[
+            "templates",
+            "categories",
+            "text_channels",
+            "voice_channels",
+            "roles",
+            "overwrites",
+        ],)
 
     @commands.command(name="템플릿사용")
     @commands.has_permissions(administrator=True)
     async def apply_template(self,ctx, template_id: str):
-        database = self.bot.db
-        await self.TemplateManager.connect_to_database(
-            database,
-            [
-                "templates",
-                "categories",
-                "text_channels",
-                "voice_channels",
-                "template_roles",
-                "overwrites",
-            ],
-        )
         # Check permissions here.
         template = await self.TemplateManager.get_template(template_id)
         if not template:
@@ -73,18 +75,6 @@ class invitetracker(commands.Cog):
     @commands.command(name="템플릿삭제")
     @commands.has_permissions(administrator=True)
     async def delete_template(self,ctx, template_id: str):
-        database = self.bot.db
-        await self.TemplateManager.connect_to_database(
-            database,
-            [
-                "templates",
-                "categories",
-                "text_channels",
-                "voice_channels",
-                "template_roles",
-                "overwrites",
-            ],
-        )
         template = await self.TemplateManager.get_template(template_id)
         # Here, you could check permissions, I recommend checking if ctx is the template guild.
         if not template:
@@ -98,17 +88,6 @@ class invitetracker(commands.Cog):
 
     @commands.command(name="템플릿목록")
     async def get_guild_templates(self,ctx):
-        await self.TemplateManager.connect_to_database(
-            self.bot.db,
-            [
-                "templates",
-                "categories",
-                "text_channels",
-                "voice_channels",
-                "template_roles",
-                "overwrites",
-            ],
-        )
         templates = await self.TemplateManager.get_templates()
         em = discord.Embed(
             title=f"템플릿 목록 • 총 {len(templates)}개 등록되어있어요.",
@@ -149,17 +128,6 @@ class invitetracker(commands.Cog):
 
     @commands.command(name="템플릿찾기")
     async def get_templates(self,ctx, id=None):
-        await self.TemplateManager.connect_to_database(
-            self.bot.db,
-            [
-                "templates",
-                "categories",
-                "text_channels",
-                "voice_channels",
-                "template_roles",
-                "overwrites",
-            ],
-        )
         if id == None:
             templates = await self.TemplateManager.get_templates(ctx.guild)
             em = discord.Embed(
@@ -239,17 +207,6 @@ class invitetracker(commands.Cog):
     @commands.command(name="템플릿등록")
     @commands.has_permissions(administrator=True)
     async def create_template(self,ctx):
-        await self.TemplateManager.connect_to_database(
-            self.bot.db,
-            [
-                "templates",
-                "categories",
-                "text_channels",
-                "voice_channels",
-                "template_roles",
-                "overwrites",
-            ],
-        )
         # Again, you should check permissions here to make sure this isn't abused.
         # You can also get all the templates a guild has, using TemplateManager.get_templates
         msg = await ctx.reply("등록중이에요! 채널수와 역할수에 따라 오래걸릴 수도있어요")

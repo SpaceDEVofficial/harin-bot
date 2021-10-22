@@ -27,11 +27,12 @@ def ordinal(num: int) -> str:
     )
 
 
-class birthday(commands.Cog):
+class birthday(commands.Cog,discordSuperUtils.CogManager.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.ImageManager = discordSuperUtils.ImageManager()
-        self.BirthdayManager = discordSuperUtils.BirthdayManager(self.bot)
+        self.BirthdayManager = discordSuperUtils.BirthdayManager(bot)
+        super().__init__()
 
     # noinspection DuplicatedCode
     async def cog_before_invoke(self, ctx: commands.Context):
@@ -67,6 +68,13 @@ class birthday(commands.Cog):
 
                 await ctx.send(embed=mal)
 
+    @commands.Cog.listener()
+    async def on_ready(self):
+        database = discordSuperUtils.DatabaseManager.connect(
+            await aiosqlite.connect("db/db.sqlite")
+        )
+        await self.BirthdayManager.connect_to_database(database, ["birthdays"])
+
     @discordSuperUtils.CogManager.event(discordSuperUtils.BirthdayManager)
     async def on_member_birthday(self, birthday_member):
         # Incase you want to support multiple guilds, you must create a channel system.
@@ -96,7 +104,6 @@ class birthday(commands.Cog):
 
     @commands.command(name="생일목록")
     async def upcoming(self, ctx):
-        await self.BirthdayManager.connect_to_database(self.bot.db, ["birthdays"])
         guild_upcoming = await self.BirthdayManager.get_upcoming(ctx.guild)
         formatted_upcoming = [
             f"멤버: {x.member}, 나이: {await x.age()}, 생일: {(await x.birthday_date()):'%Y %b %d'}"
@@ -115,8 +122,6 @@ class birthday(commands.Cog):
 
     @commands.command(name="생일")
     async def birthday(self, ctx, member: discord.Member = None):
-        database = self.bot.db
-        await self.BirthdayManager.connect_to_database(database, ["birthdays"])
         member = ctx.author if member is None else member
         member_birthday = await self.BirthdayManager.get_birthday(member)
 
@@ -143,8 +148,6 @@ class birthday(commands.Cog):
     @commands.command(name="생일삭제")
     async def delete_birthday(self, ctx):
         # You can make the command admin-only, take the member as a parameter etc.
-        database = self.bot.db
-        await self.BirthdayManager.connect_to_database(database, ["birthdays"])
         birthday_member = await self.BirthdayManager.get_birthday(ctx.author)
         if not birthday_member:
             await ctx.send("생일을 등록하지 않으셨어요!")
@@ -163,7 +166,6 @@ class birthday(commands.Cog):
 
     @commands.command(name="생일등록")
     async def setup_birthday(self, ctx):
-        await self.BirthdayManager.connect_to_database(self.bot.db, ["birthdays"])
         questions = [
             f"{ctx.author.mention}, 태어난 연도는 언제인가요? 예시) 2000",
             f"{ctx.author.mention}, 태어난 달은 언제인가요? 예시) 10",

@@ -17,39 +17,12 @@ class Leveling(commands.Cog, discordSuperUtils.CogManager.Cog):
         # managers in different files, I recommend saving the managers as attributes on the bot object, instead of
         # importing them.
 
-    # noinspection DuplicatedCode
-    async def cog_before_invoke(self, ctx: commands.Context):
-        print(ctx.command)
-        if ctx.command.name != '메일':
-            database =await aiosqlite.connect("db/db.sqlite")
-            cur = await database.execute(
-                'SELECT * FROM uncheck WHERE user_id = ?', (ctx.author.id,)
-            )
-
-            if await cur.fetchone() is None:
-                cur = await database.execute("SELECT * FROM mail")
-                mails = await cur.fetchall()
-                check = sum(1 for _ in mails)
-                mal = discord.Embed(
-                    title=f'📫하린봇 메일함 | {check}개 수신됨',
-                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
-                    colour=ctx.author.colour,
-                )
-
-                return await ctx.send(embed=mal)
-            cur = await database.execute('SELECT * FROM mail')
-            mails = await cur.fetchall()
-            check = sum(1 for _ in mails)
-            cur = await database.execute("SELECT * FROM uncheck WHERE user_id = ?", (ctx.author.id,))
-            check2 = await cur.fetchone()
-            if str(check) != str(check2[1]):
-                mal = discord.Embed(
-                    title=f'📫하린봇 메일함 | {int(check) - int(check2[1])}개 수신됨',
-                    description="아직 읽지 않은 메일이 있어요.'`하린아 메일`'로 확인하세요.\n주기적으로 메일함을 확인해주세요! 소소한 업데이트 및 이벤트개최등 여러소식을 확인해보세요.",
-                    colour=ctx.author.colour,
-                )
-
-                await ctx.send(embed=mal)
+    @commands.Cog.listener()
+    async def on_ready(self):
+        database = discordSuperUtils.DatabaseManager.connect(
+            await aiosqlite.connect("db/db.sqlite")
+        )
+        await self.LevelingManager.connect_to_database(database,["xp", "roles", "role_list"])
 
     # noinspection PyUnusedLocal
     @discordSuperUtils.CogManager.event(discordSuperUtils.LevelingManager)
@@ -63,10 +36,6 @@ class Leveling(commands.Cog, discordSuperUtils.CogManager.Cog):
 
     @commands.command(name="랭크", aliases=["레벨"])
     async def rank(self, ctx, member: discord.Member = None):
-        database = self.bot.db
-        await self.LevelingManager.connect_to_database(
-            database, ["xp", "roles", "role_list"]
-        )
         mem_obj = member or ctx.author
         member_data = await self.LevelingManager.get_account(mem_obj)
 
@@ -81,15 +50,15 @@ class Leveling(commands.Cog, discordSuperUtils.CogManager.Cog):
         image = await self.ImageManager.create_leveling_profile(
             member=mem_obj,
             member_account=member_data,
-            background=discordSuperUtils.Backgrounds.GALAXY,
-            # name_color=(255, 255, 255),
-            # rank_color=(127, 255, 0),
-            # level_color=(255, 255, 255),
-            # xp_color=(255, 255, 255),
-            # bar_outline_color=(255, 255, 255),
-            # bar_fill_color=(127, 255, 0),
-            # bar_blank_color=(72, 75, 78),
-            # profile_outline_color=(100, 100, 100),
+            background="https://media.discordapp.net/attachments/889514827905630290/899496549594329108/rankbg2.png",
+            name_color=(255, 255, 255),
+            rank_color=(255, 255, 255),
+            level_color=(255, 255, 255),
+            xp_color=(255, 255, 255),
+            bar_outline_color=(255, 255, 255),
+            bar_fill_color=(127, 255, 0),
+            bar_blank_color=(72, 75, 78),
+            profile_outline_color=(197, 116, 237),
             rank=member_rank,
             font_path="user.ttf",
             outline=5,
